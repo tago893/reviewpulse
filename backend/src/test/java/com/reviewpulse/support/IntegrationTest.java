@@ -20,7 +20,11 @@ import org.springframework.context.annotation.Import;
         "reviewpulse.outbox.poll-interval-millis=50",
         "reviewpulse.kafka.poll-timeout-millis=100",
         "reviewpulse.index.snapshot-dir=target/it-index",
-        "reviewpulse.index.import-check-seconds=1"})
+        "reviewpulse.index.import-check-seconds=1",
+        "reviewpulse.rate-limit.reads-per-second=100000",
+        "reviewpulse.rate-limit.writes-per-second=100000",
+        "reviewpulse.cache.bypass-millis=1000",
+        "reviewpulse.replay.dir=target/it-replay"})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 public @interface IntegrationTest {

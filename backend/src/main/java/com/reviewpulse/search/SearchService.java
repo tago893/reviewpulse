@@ -6,12 +6,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import com.reviewpulse.api.RequestValidationException;
+import com.reviewpulse.caching.SearchResultCache;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import com.reviewpulse.config.ReviewPulseProperties;
 import com.reviewpulse.observability.IndexerProgress;
 import com.reviewpulse.reviews.Review;
@@ -44,10 +48,21 @@ public class SearchService {
     private final Bm25Parameters bm25;
     private final ReviewPulseProperties.Search config;
     private final IndexerProgress progress;
+    private final SearchResultCache cache;
+    private final Timer searchTimer;
+    private final Timer indexTimer;
 
     public SearchService(SearchIndex index, IndexStatus status, ReviewRepository reviews, Tokenizer tokenizer,
-                         Bm25Parameters bm25, ReviewPulseProperties properties, IndexerProgress progress) {
+                         Bm25Parameters bm25, ReviewPulseProperties properties, IndexerProgress progress,
+                         SearchResultCache cache, MeterRegistry registry) {
         this.progress = progress;
+        this.cache = cache;
+        this.searchTimer = Timer.builder("reviewpulse.search.latency")
+                .description("end-to-end search time: validation, index (or cache), hydration, highlighting")
+                .publishPercentiles(0.5, 0.95, 0.99).register(registry);
+        this.indexTimer = Timer.builder("reviewpulse.search.index_latency")
+                .description("time spent ranking in the index or reading the cache")
+                .publishPercentiles(0.5, 0.95, 0.99).register(registry);
         this.index = index;
         this.status = status;
         this.reviews = reviews;
@@ -76,9 +91,23 @@ public class SearchService {
         }
         SearchQuery finalQuery = query;
         long indexStart = System.nanoTime();
-        IndexedPage indexed = index.read(idx -> new IndexedPage(
-                QueryExecutor.execute(idx, finalQuery, bm25, config.queryBudgetMillis()), index.generation()));
-        long indexMicros = (System.nanoTime() - indexStart) / 1_000;
+        long generationNow = index.generation();
+        SearchResultCache.Lookup lookup = cache.get(SearchResultCache.key(finalQuery, generationNow));
+        IndexedPage indexed;
+        if (lookup.page().isPresent()) {
+            indexed = new IndexedPage(lookup.page().get(), generationNow);
+        } else {
+            // The generation is read under the same read lock as the query, so the cache entry is keyed by
+            // exactly the index state that produced it.
+            indexed = index.read(idx -> new IndexedPage(
+                    QueryExecutor.execute(idx, finalQuery, bm25, config.queryBudgetMillis()), index.generation()));
+            if (lookup.outcome() == SearchResultCache.Outcome.MISS) {
+                cache.put(SearchResultCache.key(finalQuery, indexed.generation()), indexed.page());
+            }
+        }
+        long indexNanos = System.nanoTime() - indexStart;
+        long indexMicros = indexNanos / 1_000;
+        indexTimer.record(indexNanos, TimeUnit.NANOSECONDS);
 
         Hydrated hydrated = hydrate(indexed.page().hits(), new HashSet<>(terms));
         SearchPage page = indexed.page();
@@ -87,9 +116,12 @@ public class SearchService {
         SearchResponse response = new SearchResponse(echo(valid, terms), page.totalHits(), hydrated.results(),
                 next, page.hasMore());
 
+        long totalNanos = System.nanoTime() - started;
+        searchTimer.record(totalNanos, TimeUnit.NANOSECONDS);
         Map<String, Object> meta = new LinkedHashMap<>();
-        meta.put("tookMicros", (System.nanoTime() - started) / 1_000);
+        meta.put("tookMicros", totalNanos / 1_000);
         meta.put("indexMicros", indexMicros);
+        meta.put("cache", lookup.outcome().name());
         meta.put("staleHitsDropped", hydrated.dropped());
         meta.put("indexState", indexStatus.state().name());
         meta.put("indexGeneration", indexed.generation());

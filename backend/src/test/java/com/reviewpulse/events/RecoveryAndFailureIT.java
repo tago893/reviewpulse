@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import javax.sql.DataSource;
+
+import com.zaxxer.hikari.HikariDataSource;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -68,6 +71,8 @@ class RecoveryAndFailureIT {
     SnapshotStore snapshots;
     @Autowired
     ReviewPulseProperties properties;
+    @Autowired
+    DataSource dataSource;
 
     @AfterEach
     void leaveSystemHealthy() {
@@ -228,6 +233,9 @@ class RecoveryAndFailureIT {
                 .extractingPath("$.error.code").isEqualTo("DATABASE_UNAVAILABLE");
 
         unpause(TestcontainersConfiguration.POSTGRES);
+        // docker pause can leave pooled TCP connections black-holed behind Docker Desktop's port proxy
+        // (a real restart closes them instead). Recycle the pool so later tests start clean.
+        ((HikariDataSource) dataSource).getHikariPoolMXBean().softEvictConnections();
         await().atMost(EVENTUALLY).untilAsserted(() -> assertThat(mvc.get().uri("/api/health")).hasStatusOk());
         assertThat(searchIds(word)).containsExactly(Long.toString(r.id()));
     }

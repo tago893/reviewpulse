@@ -7,11 +7,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.CannotCreateTransactionException;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -58,6 +61,12 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, ApiError.of("MALFORMED_BODY", "request body is missing or not valid JSON"));
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<ApiResponse<Void>> missingParameter(MissingServletRequestParameterException e) {
+        return error(HttpStatus.BAD_REQUEST, ApiError.of("VALIDATION_FAILED", "request is invalid",
+                List.of(e.getParameterName() + " is required")));
+    }
+
     @ExceptionHandler(MissingRequestHeaderException.class)
     ResponseEntity<ApiResponse<Void>> missingHeader(MissingRequestHeaderException e) {
         return error(HttpStatus.BAD_REQUEST, ApiError.of("MISSING_HEADER", "required header " + e.getHeaderName() + " is missing"));
@@ -95,7 +104,8 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.SERVICE_UNAVAILABLE, ApiError.of("INDEX_UNAVAILABLE", e.getMessage()));
     }
 
-    @ExceptionHandler({DataAccessResourceFailureException.class, TransientDataAccessException.class})
+    @ExceptionHandler({DataAccessResourceFailureException.class, TransientDataAccessException.class,
+            CannotCreateTransactionException.class, TransactionSystemException.class})
     ResponseEntity<ApiResponse<Void>> databaseUnavailable(RuntimeException e) {
         log.warn("database unavailable: {}", e.getMessage());
         return error(HttpStatus.SERVICE_UNAVAILABLE, ApiError.of("DATABASE_UNAVAILABLE",

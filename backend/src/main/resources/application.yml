@@ -13,6 +13,9 @@ spring:
       maximum-pool-size: 12
       connection-timeout: 5000
       validation-timeout: 2000
+      # Probe idle connections so ones silently broken by a network partition are evicted.
+      keepalive-time: 30000
+      max-lifetime: 600000
       data-source-properties:
         # Seconds. Without these, a paused/partitioned database hangs request threads indefinitely.
         connectTimeout: 5
@@ -23,6 +26,13 @@ spring:
   threads:
     virtual:
       enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # A cache must fail fast: a slow Redis may never slow searches down by more than this.
+      timeout: 150ms
+      connect-timeout: 300ms
 
 server:
   # Trust boundary: bind to loopback only. See docs/security.md before exposing anything.
@@ -56,6 +66,18 @@ reviewpulse:
     poll-timeout-millis: 250
     max-poll-records: 500
     api-timeout-millis: 10000
+  cache:
+    enabled: ${REVIEWPULSE_CACHE_ENABLED:true}
+    ttl-seconds: 60
+    bypass-millis: 5000
+  replay:
+    dir: ${REVIEWPULSE_REPLAY_DIR:../data/replay}
+  rate-limit:
+    enabled: ${REVIEWPULSE_RATE_LIMIT_ENABLED:true}
+    reads-per-second: ${REVIEWPULSE_READS_PER_SECOND:100}
+    writes-per-second: ${REVIEWPULSE_WRITES_PER_SECOND:20}
+    burst-seconds: 2
+    max-body-bytes: 131072
   outbox:
     poll-interval-millis: 100
     batch-size: 500
@@ -71,6 +93,10 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    # Redis is an optional cache; its outage must not mark the application DOWN.
+    redis:
+      enabled: false
 
 springdoc:
   api-docs:

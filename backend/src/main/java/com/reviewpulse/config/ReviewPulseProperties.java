@@ -6,7 +6,33 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Application settings under {@code reviewpulse.*}. All values have defaults in application.yml.
  */
 @ConfigurationProperties("reviewpulse")
-public record ReviewPulseProperties(Search search, Admin admin, Index index, Kafka kafka, Outbox outbox) {
+public record ReviewPulseProperties(Search search, Admin admin, Index index, Kafka kafka, Outbox outbox, Cache cache,
+                                    RateLimit rateLimit, Replay replay) {
+
+    /** @param dir the only directory the replay simulator may read files from */
+    public record Replay(String dir) {
+    }
+
+    /**
+     * @param enabled      use Redis for ranked hit-lists
+     * @param ttlSeconds   entry lifetime (entries also become unreachable when the index changes)
+     * @param bypassMillis how long to skip Redis after an error
+     */
+    public record Cache(boolean enabled, long ttlSeconds, long bypassMillis) {
+    }
+
+    /**
+     * Per-client token buckets (client = remote address).
+     *
+     * @param enabled          apply limits
+     * @param readsPerSecond   sustained GET rate per client
+     * @param writesPerSecond  sustained POST/PUT/DELETE rate per client
+     * @param burstSeconds     bucket capacity, in seconds of sustained rate
+     * @param maxBodyBytes     request bodies above this are rejected with 413
+     */
+    public record RateLimit(boolean enabled, double readsPerSecond, double writesPerSecond, double burstSeconds,
+                            long maxBodyBytes) {
+    }
 
     /**
      * @param queryBudgetMillis CPU-time budget per query before it fails with 503
