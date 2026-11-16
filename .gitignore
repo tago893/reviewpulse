@@ -25,6 +25,8 @@ hs_err_pid*
 # --- Node / frontend ---
 node_modules/
 dist/
+test-results/
+playwright-report/
 *.tsbuildinfo
 
 # --- Python ---

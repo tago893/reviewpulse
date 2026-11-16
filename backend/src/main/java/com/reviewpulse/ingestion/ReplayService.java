@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Stream;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +66,7 @@ public class ReplayService {
 
     private final ReplayFiles files;
     private final ReviewService reviews;
-    private final KafkaProducer<String, byte[]> producer;
+    private final Producer<String, byte[]> producer;
     private final JdbcClient jdbc;
     private final JsonMapper json;
     private final String topic;
@@ -90,7 +90,7 @@ public class ReplayService {
     private final AtomicLong outOfOrder = new AtomicLong();
     private final AtomicLong failures = new AtomicLong();
 
-    public ReplayService(ReviewPulseProperties properties, ReviewService reviews, KafkaProducer<String, byte[]> producer,
+    public ReplayService(ReviewPulseProperties properties, ReviewService reviews, Producer<String, byte[]> producer,
                          JdbcClient jdbc, JsonMapper json, ReplayFilesHolder filesHolder) {
         this.files = filesHolder.files();
         this.reviews = reviews;

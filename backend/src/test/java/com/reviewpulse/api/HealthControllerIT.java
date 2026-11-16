@@ -31,4 +31,16 @@ class HealthControllerIT {
                 """).query(Integer.class).single();
         assertThat(tables).isEqualTo(2);
     }
+
+    @Test
+    void metricsSummaryReportsCountsLatencyIndexingAndCache() {
+        mvc.get().uri("/api/search").param("q", "anything").exchange();
+        var summary = assertThat(mvc.get().uri("/api/metrics/summary")).hasStatusOk().bodyJson();
+        summary.extractingPath("$.data.reviews.databaseLive").asNumber().isNotNull();
+        summary.extractingPath("$.data.reviews.indexedLive").asNumber().isNotNull();
+        summary.extractingPath("$.data.search.count").asNumber().isNotNull();
+        summary.extractingPath("$.data.indexing.state").asString().isNotBlank();
+        summary.extractingPath("$.data.indexing.eventsPerSecond").asNumber().isNotNull();
+        summary.extractingPath("$.data.cache.enabled").asBoolean().isTrue();
+    }
 }

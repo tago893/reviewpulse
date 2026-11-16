@@ -62,6 +62,7 @@ offsets. Search returns 503 only until the first index exists.
 
 ## Resource footprint (this machine, 99,688 reviews)
 
-The index rebuilds from PostgreSQL in about 4.6 s and the checkpoint is 16.4 MB. Heap and per-size
-numbers are in `docs/benchmark-results.md`. Compose limits: PostgreSQL 768 MB, Kafka 768 MB
+The index rebuilds from PostgreSQL in about 4.6 s and the checkpoint is 16.4 MB. At the full 694K reviews:
+about 425 MB of heap, a 104 MB checkpoint, and a 21 s rebuild (28 s inside the 1.5 GB backend
+container). Per-size numbers are in `docs/benchmark-results.md`. Compose limits: PostgreSQL 768 MB, Kafka 768 MB
 (384 MB heap), Redis 128 MB (64 MB maxmemory, LRU).

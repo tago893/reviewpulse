@@ -1,0 +1,23 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    client_max_body_size 128k;
+
+    location /api/admin/ {
+        proxy_pass http://${BACKEND_HOST}:8080;
+        proxy_set_header X-Admin-Token "${REVIEWPULSE_ADMIN_TOKEN}";
+        proxy_set_header Host $host;
+    }
+
+    location /api/ {
+        proxy_pass http://${BACKEND_HOST}:8080;
+        proxy_set_header Host $host;
+        # Never forward a client-supplied admin token to non-admin routes.
+        proxy_set_header X-Admin-Token "";
+    }
+
+    location / {
+        try_files $uri /index.html;
+    }
+}

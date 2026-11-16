@@ -175,8 +175,11 @@ public final class IndexBenchmark {
         try (Statement s = c.createStatement()) {
             s.execute("DROP TABLE IF EXISTS " + table);
             // Rows ordered by the hash-derived id: a deterministic pseudo-random sample of the corpus.
+            // Sized samples use bulk-imported rows only (as in the original 10K/100K runs); the full run
+            // ("all") uses every dataset-derived review, including those that arrived through the replay path.
+            String sources = size > 0 ? "source = 'DATASET'" : "source IN ('DATASET', 'REPLAY')";
             s.execute("CREATE TABLE " + table + " AS SELECT id, parent_asin, title, body, rating, helpful_votes, "
-                    + "verified_purchase, reviewed_at, version FROM reviews WHERE NOT deleted AND source = 'DATASET' ORDER BY id"
+                    + "verified_purchase, reviewed_at, version FROM reviews WHERE NOT deleted AND " + sources + " ORDER BY id"
                     + (size > 0 ? " LIMIT " + size : ""));
             s.execute("ANALYZE " + table);
         }

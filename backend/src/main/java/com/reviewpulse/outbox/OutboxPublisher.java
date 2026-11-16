@@ -10,7 +10,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.RetriableException;
@@ -48,7 +48,7 @@ public class OutboxPublisher {
     private static final int PERMANENT_FAILURE_ATTEMPTS = 5;
 
     private final OutboxRepository outbox;
-    private final KafkaProducer<String, byte[]> producer;
+    private final Producer<String, byte[]> producer;
     private final TransactionTemplate tx;
     private final ReviewPulseProperties.Outbox config;
     private final String topic;
@@ -59,7 +59,7 @@ public class OutboxPublisher {
     private volatile Instant lastSuccessAt;
     private volatile String lastError;
 
-    public OutboxPublisher(OutboxRepository outbox, KafkaProducer<String, byte[]> producer,
+    public OutboxPublisher(OutboxRepository outbox, Producer<String, byte[]> producer,
                            PlatformTransactionManager txManager, ReviewPulseProperties properties, MeterRegistry registry) {
         this.outbox = outbox;
         this.producer = producer;

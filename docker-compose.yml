@@ -73,6 +73,44 @@ services:
       timeout: 3s
       retries: 20
 
+  # ---- Application (optional): docker compose --profile app up -d --build
+  backend:
+    profiles: ["app"]
+    build: ./backend
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-reviewpulse}
+      POSTGRES_USER: ${POSTGRES_USER:-reviewpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-reviewpulse-local-only}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REVIEWPULSE_ADMIN_TOKEN: ${REVIEWPULSE_ADMIN_TOKEN:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - index-data:/data/index
+      - ./data/replay:/data/replay:ro
+    mem_limit: 1536m
+
+  frontend:
+    profiles: ["app"]
+    build: ./frontend
+    depends_on:
+      - backend
+    environment:
+      BACKEND_HOST: backend
+      REVIEWPULSE_ADMIN_TOKEN: ${REVIEWPULSE_ADMIN_TOKEN:?set REVIEWPULSE_ADMIN_TOKEN in .env}
+    ports:
+      - "127.0.0.1:3000:80"
+    mem_limit: 64m
+
 volumes:
   pg-data:
   kafka-data:
+  index-data:

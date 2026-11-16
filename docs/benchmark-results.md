@@ -9,10 +9,11 @@ tails are indicative.
 | Goal (from the brief) | Measured | Status |
 |---|---|---|
 | Search p95 < 250 ms at 100K reviews | 5.3–9.0 ms end-to-end p95 at 50 req/s/scenario, cache on; 8.7–33 ms cache off (run-to-run noise) | met |
-| New reviews searchable within ~10 s | client-observed p50 119 ms, p95 266 ms, p99 860 ms; 200/200 under 10 s | met |
+| Same at the full dataset (694K reviews) | 6.8–13.7 ms end-to-end p95, 0 errors (cache off) | met |
+| New reviews searchable within ~10 s | 100K: p50 119 ms, p95 266 ms. 694K: p50 122 ms, p95 1.7 s, p99 3.4 s. 200/200 under 10 s at both sizes | met (tail grows with index size, see bottleneck 1) |
 | No correctness failures after duplicate processing | replay with injected duplicates/out-of-order: 0 failures; index = PostgreSQL afterwards (131,264 = 131,264) | met |
 | No missing documents after a rebuild | `index-verify` after rebuilds/restores: 0 missing, 0 extra, 0 behind | met |
-| Full ~700K-review benchmark | not run: 2.4 GB free disk (see methodology) | not done |
+| Full ~700K-review benchmark | run: 694,252 unique reviews (701,528 rows minus 7,276 source duplicates) | done |
 
 ## 1. Index vs. naive PostgreSQL scan (same rows, same queries, top-20)
 
@@ -44,19 +45,37 @@ tails are indicative.
 **10,000 reviews** (`index-benchmark-10000.json`): index p50 0.012 ms / p95 0.283 ms over all queries;
 regex scan 2.1–57.7 ms p50.
 
+**Full dataset, 694,252 reviews** (`index-benchmark-all.json`). Latency in ms.
+
+| Query category | Index p50 | Index p95 | Regex scan p50 | Regex scan p95 | p50 ratio | Mean hits |
+|---|---|---|---|---|---|---|
+| common 1 term | 2.064 | 4.076 | 770.9 | 1,677.1 | ~370× | 75,487 |
+| rare 1 term | 0.028 | 0.064 | 832.3 | 1,602.5 | ~30,000× | 55 |
+| AND 2 terms | 0.484 | 3.176 | 1,753.0 | 2,463.5 | ~3,600× | 4,151 |
+| AND 3 terms | 0.171 | 2.533 | 812.5 | 1,028.6 | ~4,800× | 943 |
+| OR 3 terms | 1.134 | 2.491 | 1,266.0 | 1,888.0 | ~1,100× | 12,440 |
+| AND 2 + rating≥4 + verified | 0.677 | 3.999 | 578.3 | 1,016.3 | ~850× | 2,571 |
+| product + term (selective) | 0.006 | 0.035 | 81.7 | 121.5 | ~13,600× | 7 |
+| OR of top-3 common terms | 41.380 | 70.994 | 1,890.7 | 2,478.1 | ~46× | 357,478 |
+
+All 1,600 index queries: **p50 0.74 ms, p95 45 ms, p99 63 ms**. The p95 comes entirely from the
+huge-OR category, where every one of ~357K matches is scored. Match counts agree with the regex scan
+within 0.23% of hits.
+
 ### Build, memory, persistence, throughput (in-process)
 
-| | 10K | 100K |
-|---|---|---|
-| Build from PostgreSQL | 1,193 ms (cold JIT) | 1,869 ms (53K docs/s) |
-| Terms / postings | 13,511 / 227,960 | 39,216 / 2,272,412 |
-| Heap retained (measured / structural estimate) | 10.1 / 7.6 MB | 83.1 / 62.3 MB |
-| Checkpoint size / write / load | 1.8 MB / 156 / 198 ms | 16.4 MB / 1,026 / 403 ms |
-| Mixed-workload throughput, 1 thread | 16,817 q/s | 1,514 q/s |
-| Mixed-workload throughput, 4 threads | 36,168 q/s | 3,247 q/s |
+| | 10K | 100K | 694K (full) |
+|---|---|---|---|
+| Build from PostgreSQL | 1,193 ms (cold JIT) | 1,869 ms (53K docs/s) | 11,922 ms (58K docs/s) |
+| Terms / postings | 13,511 / 227,960 | 39,216 / 2,272,412 | 103,318 / 13,922,683 |
+| Heap retained (measured / structural estimate) | 10.1 / 7.6 MB | 83.1 / 62.3 MB | 425 / 378 MB |
+| Checkpoint size / write / load | 1.8 MB / 156 / 198 ms | 16.4 MB / 1,026 / 403 ms | 103.8 MB / 4,042 / 3,351 ms |
+| Mixed-workload throughput, 1 thread | 16,817 q/s | 1,514 q/s | 265 q/s |
+| Mixed-workload throughput, 4 threads | 36,168 q/s | 3,247 q/s | 524 q/s |
 
-Throughput at 100K is dominated by the large-OR category (~2.8 ms each), and scales about 2.1× from 1 to
-4 threads (read lock, no contention with writers in this test).
+Mixed-workload throughput is dominated by the large-OR category (2.8 ms each at 100K, 41 ms at 694K;
+one of the 8 categories but most of the CPU). It scales about 2× from 1 to 4 threads (read lock, no
+writer contention in this test). Memory grows linearly at about 0.6 KB per review.
 
 ## 2. End-to-end HTTP search (k6, 99,688 reviews, 50 req/s per scenario)
 
@@ -69,7 +88,11 @@ in every run (~6,000 requests per run).
 | popular (5 repeated queries) | 3.3 / 5.3 / 10.6 | 3.1 / 12.3 / 30.9 |
 | cold (unique queries) | 4.7 / 9.0 / 20.8 | 3.6 / 18.9 / 72.7 |
 
-Server-side timers for the same runs: the index-or-cache stage was p50 2.2 ms with Redis vs 0.52 ms
+**Full dataset (694,252 reviews), cache off, same scenarios** (`k6-search-700k-cache-off.json`, after a
+discarded warm-up run): mixed 4.0 / 9.7 / 25.7 ms, popular 3.8 / 6.8 / 15.3 ms, cold 5.0 / 13.7 /
+35.1 ms (p50 / p95 / p99); 0 failed of 6,001. Random user-style queries rarely hit the huge-OR worst case.
+
+Server-side timers for the 100K runs: the index-or-cache stage was p50 2.2 ms with Redis vs 0.52 ms
 without. A Redis round trip through Docker Desktop costs more than ranking 100K reviews in process.
 Cache hit rate was 29% (the mixed scenario rarely repeats queries).
 
@@ -89,6 +112,10 @@ another process.
 | Server commit → indexed | 84 ms | 226 ms | 772 ms | |
 
 The floor is the outbox poll interval (100 ms). The p99 outliers line up with periodic checkpoints (below).
+
+At the full dataset (`freshness-700k.json`), the median is unchanged but the tail grows: client-observed
+p50 122 ms, p95 1,670 ms, p99 3,374 ms, max 3.7 s (server commit→indexed p50 67 ms, p95 1.7 s, p99 3.5 s).
+200/200 were searchable within 10 s. A checkpoint now takes ~4 s, and events arriving meanwhile wait for it.
 
 ## 4. Indexing throughput under replayed live traffic
 
@@ -117,15 +144,20 @@ Real, not-yet-imported reviews through PostgreSQL → outbox → Kafka → index
 | Restart with valid checkpoint (119,323 reviews, 19.6 MB) | checkpoint loaded in 825 ms; index live ~1.1 s after application start; later events replayed from Kafka |
 | Full rebuild from PostgreSQL (131,264 reviews, warm JVM) | 5,346 ms |
 | Full rebuild at first start (99,688 reviews, cold JVM) | 4,623 ms |
+| Full rebuild after the full bulk import (694,462 reviews, in-app) | 21,309 ms; the old checkpoint was correctly rejected as older than import run 6 |
+| Same rebuild inside the backend container (694,669 reviews, 1.5 GB limit) | 28,252 ms; 1.0 GB memory used |
 | Periodic checkpoint at 100–131K reviews | 0.66–1.39 s each (compaction + serialization + fsync) |
+| Checkpoint at 694K reviews (harness) | 4.0 s write, 3.4 s load, 104 MB |
 
 ## Bottlenecks found (and what would fix them)
 
-1. **Checkpoints pause the indexer for about 1 s.** They run on the single writer thread, so events queue
-   up meanwhile. This produces the p99 delay spikes (772–860 ms). Fix: serialize from an immutable view on
-   a background thread (copy-on-write segments) so indexing continues. Not implemented.
+1. **Checkpoints pause the indexer**: about 1 s at 100K reviews, about 4 s at 694K. They run on the
+   single writer thread, so events queue up meanwhile. This produces the freshness tail (p99 0.86 s at
+   100K, 3.4 s at 694K). Fix: serialize from an immutable view on a background thread (copy-on-write
+   segments) so indexing continues. Not implemented.
 2. **Write throughput is bounded by PostgreSQL commits** (~460/s with 8 writers here). Fix: group commit
    or batching at the source; outside the search system's scope.
-3. **Large OR queries** cost about 2.8 ms because every match is scored. Fix: WAND/MaxScore dynamic
-   pruning using per-term upper bounds. Not implemented; not needed at this scale.
+3. **Large OR queries** score every match: 2.8 ms at 100K, 41 ms p50 / 71 ms p95 at 694K (357K matches).
+   Fix: WAND/MaxScore dynamic pruning using per-term score upper bounds, so documents that cannot enter
+   the top-K are skipped. Not implemented; still well under the latency goal.
 4. **Redis on the hot path** was slower than the in-process index (see section 2), so it is disabled.

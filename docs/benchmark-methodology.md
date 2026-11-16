@@ -85,8 +85,13 @@ second until the replay finishes and the backlog (outbox pending + Kafka lag) is
 once (replaying it again would only produce duplicates). Afterwards `GET /api/admin/index-verify`
 confirms the index equals PostgreSQL.
 
-## Not run
+## Full-dataset run
 
-* **Full ~700K-review benchmark.** The procedure is identical with `IndexBenchmark 0` after
-  `prepare_dataset.py import` without `--limit`. It was not run because the system drive had 2.4 GB free
-  at that point, and a full import adds roughly 1 GB of PostgreSQL data and WAL inside Docker's virtual disk.
+`prepare_dataset.py import` without `--limit` (all 701,528 rows → 694,252 unique reviews in 104.6 s; the
+database is 474 MB), then `IndexBenchmark 0` with `-Xmx2560m`. The full-size table includes every
+dataset-derived row, including the 31,376 reviews that entered through the replay simulator; the sized
+10K/100K tables use bulk-imported rows only. The k6 and freshness runs were repeated against a backend
+started on the full dataset (`-Xmx2g`, cache off, after a discarded warm-up run).
+
+On an earlier pass the full run was postponed because the system drive had 2.4 GB free; it was run once
+space was available (44 GB free).

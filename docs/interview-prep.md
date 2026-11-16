@@ -7,7 +7,7 @@ A scan has to read every review for every query: O(N·L). An inverted index prec
 documents, so a query touches only the posting lists of its terms. Measured at 100K reviews: index
 p50 0.07 ms vs a PostgreSQL word-boundary scan of 127–267 ms on the same rows (95× to >1,000× by
 category). The gap grows with N, because the scan is linear in rows while the index is proportional to
-the postings touched.
+the postings touched. At the full 694K reviews: index p50 0.74 ms vs scans of 82 ms to 1.9 s.
 
 **How does BM25 work?**
 Score = Σ over query terms of idf × saturated term frequency.

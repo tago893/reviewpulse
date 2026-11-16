@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +23,10 @@ public class DeadLetterPublisher {
     private static final Logger log = LoggerFactory.getLogger(DeadLetterPublisher.class);
     private static final int MAX_ERROR_CHARS = 500;
 
-    private final KafkaProducer<String, byte[]> producer;
+    private final Producer<String, byte[]> producer;
     private final ReviewPulseProperties.Kafka config;
 
-    public DeadLetterPublisher(KafkaProducer<String, byte[]> producer, ReviewPulseProperties properties) {
+    public DeadLetterPublisher(Producer<String, byte[]> producer, ReviewPulseProperties properties) {
         this.producer = producer;
         this.config = properties.kafka();
     }

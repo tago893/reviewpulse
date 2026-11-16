@@ -8,14 +8,19 @@ PostgreSQL full-text search. Writes go to PostgreSQL through a **transactional o
 
 ![Search UI](docs/screenshots/search.png)
 
+**Demo video (27 s):** [docs/demo/reviewpulse-demo.webm](docs/demo/reviewpulse-demo.webm). It is
+recorded by a Playwright walkthrough: search with highlighting and filters, open a review, create one and
+watch it become searchable, vote, delete, and check system status.
+
 ## Highlights (measured; see [benchmark results](docs/benchmark-results.md))
 
-* **Index-only query latency at 100K reviews:** p50 0.07 ms, p95 2.9 ms. That is **95× to over 1,000×
-  faster** than a naive PostgreSQL word-boundary scan over the same rows and queries, which takes
-  12–267 ms at p50.
-* **End-to-end `GET /api/search` at 50 req/s per scenario:** p95 5–9 ms, including hydration from
-  PostgreSQL. 0 errors.
-* **Write → searchable:** p50 119 ms, p95 266 ms through outbox → Kafka → index. 200/200 within 10 s.
+* **Full dataset, 694K reviews:** index query p50 0.74 ms. That is **46× to ~30,000× faster** than a
+  naive PostgreSQL word-boundary scan of the same rows (82 ms to 1.9 s at p50), with match counts within
+  0.23%. At 100K reviews the index p50 is 0.07 ms.
+* **End-to-end `GET /api/search` at 50 req/s per scenario:** p95 7–14 ms on the full dataset (5–9 ms at
+  100K), including hydration from PostgreSQL. 0 errors.
+* **Write → searchable:** p50 about 120 ms through outbox → Kafka → index. p95 is 266 ms at 100K and
+  1.7 s at 694K (checkpoint pauses, see limitations). 200/200 within 10 s at both sizes.
 * **Replayed live traffic:** ~420 events/s end to end with 8 writers. Duplicate and out-of-order events
   were injected, and the index still matched PostgreSQL exactly afterwards (131,264 = 131,264).
 * **Recovery:** restart from a 19.6 MB checkpoint in 825 ms, vs 5.3 s for a full rebuild.
@@ -81,6 +86,12 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # .venv/
 cd frontend && npm install && npm run dev # http://127.0.0.1:5173
 ```
 
+Or run the whole stack in containers (backend + nginx-served UI, still bound to `127.0.0.1`):
+
+```bash
+docker compose --profile app up -d --build   # UI http://127.0.0.1:3000, API http://127.0.0.1:8080
+```
+
 Try it:
 
 ```bash
@@ -106,15 +117,23 @@ Review ids are strings in JSON: dataset ids exceed 2^53 and would lose precision
 ## Tests
 
 ```bash
-cd backend && ./mvnw verify      # 97 unit tests + 27 integration tests (Testcontainers: PostgreSQL, Kafka, Redis)
+cd backend && ./mvnw verify      # 130 unit tests + 28 integration tests (Testcontainers: PostgreSQL, Kafka, Redis)
                                  # merged coverage report: backend/target/site/jacoco-merged/index.html
 cd data-tools && .venv/Scripts/python -m pytest -q    # 26 tests (one uses the local PostgreSQL)
 cd frontend && npm run build     # strict TypeScript + production build
+cd frontend && npm run e2e       # Playwright end-to-end tests against the running stack (uses installed Edge)
+cd frontend && npm run demo      # records the walkthrough video to frontend/test-results/
 ```
 
-Coverage (unit + integration, JaCoCo, last run): **88% of instructions, 77% of branches**. The search
-engine packages are at 97–100% instructions; the weakest areas are the metrics-summary service (48%)
-and the outbox publisher's non-retriable failure branches.
+A GitHub Actions workflow is ready in [`docs/ci/github-actions-ci.yml`](docs/ci/github-actions-ci.yml). It
+runs the backend unit + Testcontainers integration tests, the data-tool tests and the frontend
+typecheck/build on every push. To enable it, copy it to `.github/workflows/ci.yml` (on github.com: *Add
+file → Create new file*, paste it). The end-to-end tests need a running stack with data, so they run
+locally rather than in CI.
+
+Coverage (unit + integration, JaCoCo, last run): **92% of instructions, 81% of branches**. The search
+engine packages are at 97–100% instructions; the weakest branch coverage is in the indexer worker's
+Kafka-failure handling (events package, 63%), which the outage ITs exercise only partly.
 
 Highlights of what is tested:
 
@@ -133,12 +152,12 @@ Highlights of what is tested:
   [interview-prep](docs/interview-prep.md)).
 * Search is eventually consistent; no read-your-writes in search; cursors can shift if the index changes
   between pages ([consistency](docs/consistency.md)).
-* Checkpoints pause indexing about 1 s at 100K+ reviews (causes p99 freshness spikes); there is no
-  background/incremental checkpointing.
+* Checkpoints pause indexing (about 1 s at 100K reviews, about 4 s at 694K), which causes the freshness
+  tail; there is no background/incremental checkpointing yet.
+* Huge OR queries score every match (41 ms at 694K for a 357K-match query); no WAND/MaxScore pruning.
 * No stemming, no phrase queries, no CJK segmentation; BM25 parameters are defaults, not tuned.
-* The full ~700K benchmark was not run (disk space on the dev machine); 10K and 100K were.
-* No frontend unit/E2E tests. The UI was verified by building it and by screenshots against the live
-  backend.
+* End-to-end browser tests run locally against a stack with data, not in CI; there are no frontend unit
+  tests.
 * Admin auth is a shared token for local demos, not user authentication.
 * Benchmarks come from one busy laptop; tails vary between runs.
 
