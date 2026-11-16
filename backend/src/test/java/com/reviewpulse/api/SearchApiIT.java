@@ -10,24 +10,19 @@ import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 import com.jayway.jsonpath.JsonPath;
-import com.reviewpulse.search.IndexManager;
+import com.reviewpulse.events.IndexerWorker;
 import com.reviewpulse.search.IndexState;
 import com.reviewpulse.search.IndexStatus;
 import com.reviewpulse.search.SearchFixtures;
 import com.reviewpulse.search.index.IndexedReview;
-import com.reviewpulse.support.TestcontainersConfiguration;
+import com.reviewpulse.support.IntegrationTest;
 
-@SpringBootTest(properties = {"reviewpulse.admin.token=test-admin-token", "reviewpulse.index.build-on-startup=false"})
-@AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@IntegrationTest
 class SearchApiIT {
 
     @Autowired
@@ -35,12 +30,15 @@ class SearchApiIT {
     @Autowired
     JdbcClient jdbc;
     @Autowired
-    IndexManager manager;
+    IndexerWorker manager;
     @Autowired
     IndexStatus status;
 
     @BeforeEach
     void loadLabeledCorpusAndBuildIndex() {
+        // Let events written by other test classes drain first, so none lands after the rebuild below.
+        await().atMost(Duration.ofSeconds(30)).until(() -> jdbc.sql(
+                "SELECT count(*) FROM outbox_events WHERE status = 'PENDING'").query(Long.class).single() == 0);
         jdbc.sql("DELETE FROM reviews").update();
         for (IndexedReview r : SearchFixtures.labeledCorpus()) {
             jdbc.sql("""
@@ -55,6 +53,10 @@ class SearchApiIT {
                     .param("version", r.version())
                     .update();
         }
+        // Fixture rows use explicit ids in the API range; move the sequence past them so API creates
+        // in other tests never collide with them.
+        jdbc.sql("SELECT setval('review_api_id_seq', GREATEST(:floor, (SELECT last_value FROM review_api_id_seq)))")
+                .param("floor", 1_000L).query(Long.class).single();
         rebuildAndWait();
     }
 
@@ -142,7 +144,7 @@ class SearchApiIT {
     void adminEndpointsRequireToken() {
         assertThat(mvc.get().uri("/api/admin/index-status")).hasStatus(401);
         assertThat(mvc.get().uri("/api/admin/index-status").header(AdminTokenFilter.HEADER, "wrong")).hasStatus(401);
-        assertThat(mvc.get().uri("/api/admin/index-status").header(AdminTokenFilter.HEADER, "test-admin-token"))
+        assertThat(mvc.get().uri("/api/admin/index-status").header(AdminTokenFilter.HEADER, IntegrationTest.ADMIN_TOKEN))
                 .hasStatusOk().bodyJson().extractingPath("$.data.liveDocs").asNumber().isEqualTo(10);
     }
 }

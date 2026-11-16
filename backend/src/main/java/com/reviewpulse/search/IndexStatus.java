@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.stereotype.Component;
 
 /**
- * Observable state of the index. Updated by whoever builds or feeds the index; read by search,
+ * Observable lifecycle state of the index. Written only by the indexer thread; read by search,
  * health and metrics. Immutable snapshots are swapped atomically.
  */
 @Component
@@ -18,19 +18,22 @@ public class IndexStatus {
     }
 
     private final AtomicReference<Snapshot> current =
-            new AtomicReference<>(new Snapshot(IndexState.EMPTY, "not built yet", Instant.now(), null, 0, false));
+            new AtomicReference<>(new Snapshot(IndexState.EMPTY, "starting", Instant.now(), null, 0, false));
 
     public Snapshot snapshot() {
         return current.get();
     }
 
+    /** Changes state/detail; a no-op if both are unchanged (keeps {@code since} meaningful). */
     public void transition(IndexState state, String detail) {
-        current.updateAndGet(s -> new Snapshot(state, detail, Instant.now(), s.lastBuildCompletedAt(),
-                s.lastBuildMillis(), s.hasServedIndex()));
+        current.updateAndGet(s -> s.state() == state && s.detail().equals(detail) ? s
+                : new Snapshot(state, detail, Instant.now(), s.lastBuildCompletedAt(), s.lastBuildMillis(),
+                s.hasServedIndex()));
     }
 
-    public void buildCompleted(long millis) {
-        current.set(new Snapshot(IndexState.LIVE, "built from PostgreSQL", Instant.now(), Instant.now(), millis, true));
+    public void buildCompleted(long millis, IndexState state, String detail) {
+        Instant now = Instant.now();
+        current.set(new Snapshot(state, detail, now, now, millis, true));
     }
 
     public void buildFailed(String detail) {

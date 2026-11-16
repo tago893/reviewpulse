@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.reviewpulse.api.RequestValidationException;
 import com.reviewpulse.config.ReviewPulseProperties;
+import com.reviewpulse.observability.IndexerProgress;
 import com.reviewpulse.reviews.Review;
 import com.reviewpulse.reviews.ReviewRepository;
 import com.reviewpulse.search.highlight.Highlighter;
@@ -42,9 +43,11 @@ public class SearchService {
     private final Highlighter highlighter;
     private final Bm25Parameters bm25;
     private final ReviewPulseProperties.Search config;
+    private final IndexerProgress progress;
 
     public SearchService(SearchIndex index, IndexStatus status, ReviewRepository reviews, Tokenizer tokenizer,
-                         Bm25Parameters bm25, ReviewPulseProperties properties) {
+                         Bm25Parameters bm25, ReviewPulseProperties properties, IndexerProgress progress) {
+        this.progress = progress;
         this.index = index;
         this.status = status;
         this.reviews = reviews;
@@ -90,7 +93,8 @@ public class SearchService {
         meta.put("staleHitsDropped", hydrated.dropped());
         meta.put("indexState", indexStatus.state().name());
         meta.put("indexGeneration", indexed.generation());
-        meta.put("possiblyIncomplete", indexStatus.state() != IndexState.LIVE);
+        meta.put("indexLagEvents", progress.lagEvents());
+        meta.put("possiblyIncomplete", indexStatus.state() != IndexState.LIVE || progress.lagEvents() != 0);
         if (terms.isEmpty()) {
             meta.put("warning", "query contains no searchable terms (only stop words or punctuation)");
         }

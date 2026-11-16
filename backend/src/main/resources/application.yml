@@ -38,7 +38,22 @@ reviewpulse:
     token: ${REVIEWPULSE_ADMIN_TOKEN:}
   index:
     build-fetch-size: 2000
-    build-on-startup: true
+    indexer-enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:${KAFKA_PORT:9092}}
+    topic: review-events
+    dead-letter-topic: review-events.dlt
+    partitions: 3
+    consumer-group: reviewpulse-indexer
+    poll-timeout-millis: 250
+    max-poll-records: 500
+    api-timeout-millis: 10000
+  outbox:
+    poll-interval-millis: 100
+    batch-size: 500
+    send-timeout-millis: 10000
+    max-backoff-millis: 10000
+    retention-hours: 24
 
 management:
   endpoints:

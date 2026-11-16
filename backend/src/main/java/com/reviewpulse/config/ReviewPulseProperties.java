@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Application settings under {@code reviewpulse.*}. All values have defaults in application.yml.
  */
 @ConfigurationProperties("reviewpulse")
-public record ReviewPulseProperties(Search search, Admin admin, Index index) {
+public record ReviewPulseProperties(Search search, Admin admin, Index index, Kafka kafka, Outbox outbox) {
 
     /**
      * @param queryBudgetMillis CPU-time budget per query before it fails with 503
@@ -30,8 +30,33 @@ public record ReviewPulseProperties(Search search, Admin admin, Index index) {
 
     /**
      * @param buildFetchSize rows fetched per round trip while streaming reviews for a rebuild
-     * @param buildOnStartup build the index from PostgreSQL when the application starts
+     * @param indexerEnabled run the Kafka-fed indexer thread (disable only in narrow tests)
      */
-    public record Index(int buildFetchSize, boolean buildOnStartup) {
+    public record Index(int buildFetchSize, boolean indexerEnabled) {
+    }
+
+    /**
+     * @param bootstrapServers   Kafka bootstrap servers
+     * @param topic              review change events, keyed by review id
+     * @param deadLetterTopic    events that can never be applied
+     * @param partitions         partition count used when the backend creates the topic
+     * @param consumerGroup      group id used for offset commits (observability only)
+     * @param pollTimeoutMillis  consumer poll timeout
+     * @param maxPollRecords     upper bound on one indexing batch
+     * @param apiTimeoutMillis   timeout for metadata/offset calls, so an outage is detected quickly
+     */
+    public record Kafka(String bootstrapServers, String topic, String deadLetterTopic, int partitions,
+                        String consumerGroup, long pollTimeoutMillis, int maxPollRecords, long apiTimeoutMillis) {
+    }
+
+    /**
+     * @param pollIntervalMillis delay between publisher runs when idle
+     * @param batchSize          rows locked and published per transaction
+     * @param sendTimeoutMillis  max wait for broker acknowledgements of one batch
+     * @param maxBackoffMillis   cap for exponential backoff while Kafka is failing
+     * @param retentionHours     published rows older than this are deleted
+     */
+    public record Outbox(long pollIntervalMillis, int batchSize, long sendTimeoutMillis, long maxBackoffMillis,
+                         long retentionHours) {
     }
 }

@@ -10,8 +10,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.reviewpulse.events.IndexerWorker;
+import com.reviewpulse.observability.IndexerProgress;
+import com.reviewpulse.outbox.OutboxPublisher;
+import com.reviewpulse.outbox.OutboxRepository;
 import com.reviewpulse.reviews.ReviewRepository;
-import com.reviewpulse.search.IndexManager;
 import com.reviewpulse.search.IndexStatus;
 import com.reviewpulse.search.index.IndexStats;
 import com.reviewpulse.search.index.SearchIndex;
@@ -21,25 +24,31 @@ import com.reviewpulse.search.index.SearchIndex;
 @RequestMapping("/api/admin")
 public class AdminController {
 
-    private final IndexManager manager;
+    private final IndexerWorker indexer;
     private final IndexStatus status;
     private final SearchIndex index;
     private final ReviewRepository reviews;
+    private final IndexerProgress progress;
+    private final OutboxRepository outbox;
+    private final OutboxPublisher publisher;
 
-    public AdminController(IndexManager manager, IndexStatus status, SearchIndex index, ReviewRepository reviews) {
-        this.manager = manager;
+    public AdminController(IndexerWorker indexer, IndexStatus status, SearchIndex index, ReviewRepository reviews,
+                           IndexerProgress progress, OutboxRepository outbox, OutboxPublisher publisher) {
+        this.indexer = indexer;
         this.status = status;
         this.index = index;
         this.reviews = reviews;
+        this.progress = progress;
+        this.outbox = outbox;
+        this.publisher = publisher;
     }
 
     @PostMapping("/reindex")
     public ResponseEntity<ApiResponse<Map<String, Object>>> reindex() {
-        boolean started = manager.requestRebuild("admin request");
-        if (!started) {
-            throw new ConflictException("REBUILD_IN_PROGRESS", "a rebuild is already running");
+        if (!indexer.requestRebuild("admin request")) {
+            throw new ConflictException("REBUILD_IN_PROGRESS", "a rebuild is already pending or running");
         }
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(Map.of("rebuild", "started")));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(Map.of("rebuild", "queued")));
     }
 
     @GetMapping("/index-status")
@@ -50,7 +59,7 @@ public class AdminController {
         body.put("state", s.state().name());
         body.put("detail", s.detail());
         body.put("since", s.since());
-        body.put("rebuilding", manager.isRebuilding());
+        body.put("rebuilding", indexer.isRebuilding());
         body.put("lastBuildCompletedAt", s.lastBuildCompletedAt());
         body.put("lastBuildMillis", s.lastBuildMillis());
         body.put("generation", index.generation());
@@ -64,6 +73,15 @@ public class AdminController {
         body.put("trackedReviews", stats.trackedReviews());
         body.put("approximateBytes", stats.approximateBytes());
         body.put("databaseLiveReviews", reviews.countLive());
+        body.put("indexer", progress.view());
+        Map<String, Object> outboxView = new LinkedHashMap<>();
+        outboxView.put("pending", outbox.countByStatus("PENDING"));
+        outboxView.put("failed", outbox.countByStatus("FAILED"));
+        outboxView.put("oldestPendingMillis", outbox.oldestPendingAge().toMillis());
+        outboxView.put("backoffMillis", publisher.currentBackoffMillis());
+        outboxView.put("lastSuccessAt", publisher.lastSuccessAt());
+        outboxView.put("lastError", publisher.lastError());
+        body.put("outbox", outboxView);
         return ResponseEntity.ok(ApiResponse.ok(body));
     }
 }
