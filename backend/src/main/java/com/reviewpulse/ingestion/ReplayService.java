@@ -53,8 +53,10 @@ public class ReplayService {
 
     /** Parameters of a replay run. */
     public record StartRequest(String file, Double eventsPerSecond, Long limit, Long seed, Double duplicateRate,
-                               Double outOfOrderRate) {
+                               Double outOfOrderRate, Integer writers) {
     }
+
+    public static final int MAX_WRITERS = 16;
 
     /** Observable state. */
     public record Status(String state, String file, long position, long total, double targetRate, double achievedRate,
@@ -114,6 +116,10 @@ public class ReplayService {
         if (limit < 1) {
             throw new RequestValidationException(List.of("limit must be >= 1"));
         }
+        int writerCount = req.writers() == null ? 1 : req.writers();
+        if (writerCount < 1 || writerCount > MAX_WRITERS) {
+            throw new RequestValidationException(List.of("writers must be between 1 and " + MAX_WRITERS));
+        }
         Path path = files.resolve(req.file());
         synchronized (lock) {
             if (worker != null && worker.isAlive()) {
@@ -133,7 +139,7 @@ public class ReplayService {
             }
             long runLimit = total;
             long runSeed = seed;
-            worker = new Thread(() -> run(path, runLimit, runSeed, dup, ooo), "replay");
+            worker = new Thread(() -> run(path, runLimit, runSeed, dup, ooo, writerCount), "replay");
             worker.setDaemon(true);
             worker.start();
         }
@@ -184,13 +190,23 @@ public class ReplayService {
 
     // ------------------------------------------------------------------ worker
 
-    private void run(Path path, long limit, long runSeed, double dupRate, double oooRate) {
+    /**
+     * One pacing thread (this one) reads records in timestamp order and hands each to {@code writers}
+     * concurrent writer threads through a small bounded queue, emulating that many clients. With one
+     * writer the order is strictly sequential; with several, arrivals overlap like real traffic.
+     * Injection decisions are drawn here, in record order, so a seed stays deterministic.
+     */
+    private void run(Path path, long limit, long runSeed, double dupRate, double oooRate, int writers) {
         Random random = new Random(runSeed);
+        java.util.concurrent.ThreadPoolExecutor pool = new java.util.concurrent.ThreadPoolExecutor(writers, writers,
+                0, TimeUnit.MILLISECONDS, new java.util.concurrent.ArrayBlockingQueue<>(writers * 4),
+                r -> new Thread(r, "replay-writer"), new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
         try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             double windowRate = rate;
             resetWindow();
             String line;
-            while (!cancelled && position.get() < limit && (line = reader.readLine()) != null) {
+            long submitted = 0;
+            while (!cancelled && submitted < limit && (line = reader.readLine()) != null) {
                 if (line.isBlank()) {
                     continue;
                 }
@@ -210,13 +226,26 @@ public class ReplayService {
                 if (wait > 0) {
                     LockSupport.parkNanos(wait);
                 }
-                replayOne(line, random, dupRate, oooRate);
+                boolean injectDuplicate = random.nextDouble() < dupRate;
+                boolean injectOutOfOrder = random.nextDouble() < oooRate;
+                String record = line;
+                pool.execute(() -> {
+                    replayOne(record, injectDuplicate, injectOutOfOrder);
+                    position.incrementAndGet();
+                });
+                submitted++;
                 windowSent++;
-                position.incrementAndGet();
             }
         } catch (IOException | RuntimeException e) {
             lastError = e.getClass().getSimpleName() + ": " + e.getMessage();
             log.error("replay stopped by error", e);
+        } finally {
+            pool.shutdown();
+            try {
+                pool.awaitTermination(5, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
         log.info("replay finished: {}", status());
     }
@@ -226,10 +255,7 @@ public class ReplayService {
         windowSent = 0;
     }
 
-    private void replayOne(String line, Random random, double dupRate, double oooRate) {
-        // Draw both decisions for every record so a given seed gives the same choices for the same file.
-        boolean injectDuplicate = random.nextDouble() < dupRate;
-        boolean injectOutOfOrder = random.nextDouble() < oooRate;
+    private void replayOne(String line, boolean injectDuplicate, boolean injectOutOfOrder) {
         try {
             Optional<Review> review = reviews.importReplayed(parse(line));
             if (review.isEmpty()) {

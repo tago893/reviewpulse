@@ -67,7 +67,9 @@ reviewpulse:
     max-poll-records: 500
     api-timeout-millis: 10000
   cache:
-    enabled: ${REVIEWPULSE_CACHE_ENABLED:true}
+    # Off by default: at 100K reviews the in-process index answers faster than a Redis round trip on
+    # this setup, and end-to-end runs showed no consistent benefit (docs/benchmark-results.md).
+    enabled: ${REVIEWPULSE_CACHE_ENABLED:false}
     ttl-seconds: 60
     bypass-millis: 5000
   replay:

@@ -1,0 +1,18 @@
+{
+  "label": "freshness-100k",
+  "count": 200,
+  "ratePerSecond": 5.0,
+  "clientObservedMillis": {
+    "p50": 119.0,
+    "p95": 266.1,
+    "p99": 860.0,
+    "max": 1257.7,
+    "mean": 143.6
+  },
+  "serverCommitToIndexedMillis": {
+    "p50": 83.853312,
+    "p95": 226.459648,
+    "p99": 771.719168
+  },
+  "under10Seconds": 1.0
+}

@@ -1,0 +1,370 @@
+{
+  "generatedAt" : "2026-11-16T06:00:50.487515100Z",
+  "machine" : {
+    "os" : "Windows 11 10.0",
+    "java" : "OpenJDK 64-Bit Server VM 21.0.13",
+    "availableProcessors" : 8,
+    "maxHeapBytes" : 2147483648
+  },
+  "table" : "bench_reviews_10000",
+  "documents" : 10000,
+  "build" : {
+    "millis" : 1193,
+    "estimatedIndexBytes" : 7611144,
+    "products" : 7320,
+    "terms" : 13511,
+    "postings" : 227960,
+    "measuredHeapDeltaBytes" : 10062720,
+    "docsPerSecond" : 8382
+  },
+  "checkpoint" : {
+    "loadMillis" : 198,
+    "writeMillis" : 156,
+    "loadedOk" : true,
+    "bytes" : 1768800
+  },
+  "indexRelevanceTop20" : {
+    "common-1-term" : {
+      "samples" : 200,
+      "p50Millis" : 0.178,
+      "p95Millis" : 0.503,
+      "p99Millis" : 0.969,
+      "maxMillis" : 6.109,
+      "meanMillis" : 0.253,
+      "meanTotalHits" : 1193
+    },
+    "rare-1-term" : {
+      "samples" : 200,
+      "p50Millis" : 0.005,
+      "p95Millis" : 0.021,
+      "p99Millis" : 0.105,
+      "maxMillis" : 0.188,
+      "meanMillis" : 0.009,
+      "meanTotalHits" : 3
+    },
+    "and-2-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.019,
+      "p95Millis" : 0.18,
+      "p99Millis" : 0.342,
+      "maxMillis" : 2.551,
+      "meanMillis" : 0.055,
+      "meanTotalHits" : 58
+    },
+    "and-3-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.005,
+      "p95Millis" : 0.031,
+      "p99Millis" : 0.056,
+      "maxMillis" : 0.112,
+      "meanMillis" : 0.01,
+      "meanTotalHits" : 10
+    },
+    "or-3-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.013,
+      "p95Millis" : 0.026,
+      "p99Millis" : 0.036,
+      "maxMillis" : 0.062,
+      "meanMillis" : 0.015,
+      "meanTotalHits" : 188
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "samples" : 200,
+      "p50Millis" : 0.007,
+      "p95Millis" : 0.047,
+      "p99Millis" : 0.068,
+      "maxMillis" : 0.163,
+      "meanMillis" : 0.015,
+      "meanTotalHits" : 42
+    },
+    "selective(product+term)" : {
+      "samples" : 200,
+      "p50Millis" : 0.002,
+      "p95Millis" : 0.006,
+      "p99Millis" : 0.02,
+      "maxMillis" : 0.06,
+      "meanMillis" : 0.003,
+      "meanTotalHits" : 1
+    },
+    "large-or(top-3-common)" : {
+      "samples" : 200,
+      "p50Millis" : 0.268,
+      "p95Millis" : 0.346,
+      "p99Millis" : 0.436,
+      "maxMillis" : 0.495,
+      "meanMillis" : 0.278,
+      "meanTotalHits" : 5463
+    }
+  },
+  "indexRecencyTop20" : {
+    "common-1-term" : {
+      "samples" : 200,
+      "p50Millis" : 0.148,
+      "p95Millis" : 0.448,
+      "p99Millis" : 1.203,
+      "maxMillis" : 2.344,
+      "meanMillis" : 0.206
+    },
+    "rare-1-term" : {
+      "samples" : 200,
+      "p50Millis" : 0.004,
+      "p95Millis" : 0.013,
+      "p99Millis" : 0.043,
+      "maxMillis" : 0.062,
+      "meanMillis" : 0.006
+    },
+    "and-2-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.014,
+      "p95Millis" : 0.168,
+      "p99Millis" : 0.578,
+      "maxMillis" : 4.717,
+      "meanMillis" : 0.067
+    },
+    "and-3-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.003,
+      "p95Millis" : 0.023,
+      "p99Millis" : 0.047,
+      "maxMillis" : 0.05,
+      "meanMillis" : 0.007
+    },
+    "or-3-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.011,
+      "p95Millis" : 0.02,
+      "p99Millis" : 0.024,
+      "maxMillis" : 0.033,
+      "meanMillis" : 0.012
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "samples" : 200,
+      "p50Millis" : 0.004,
+      "p95Millis" : 0.04,
+      "p99Millis" : 0.073,
+      "maxMillis" : 0.1,
+      "meanMillis" : 0.012
+    },
+    "selective(product+term)" : {
+      "samples" : 200,
+      "p50Millis" : 0.001,
+      "p95Millis" : 0.003,
+      "p99Millis" : 0.016,
+      "maxMillis" : 0.047,
+      "meanMillis" : 0.002
+    },
+    "large-or(top-3-common)" : {
+      "samples" : 200,
+      "p50Millis" : 0.186,
+      "p95Millis" : 0.249,
+      "p99Millis" : 0.297,
+      "maxMillis" : 0.306,
+      "meanMillis" : 0.193
+    }
+  },
+  "indexAllQueries" : {
+    "samples" : 1600,
+    "p50Millis" : 0.012,
+    "p95Millis" : 0.283,
+    "p99Millis" : 0.462,
+    "maxMillis" : 6.109,
+    "meanMillis" : 0.08
+  },
+  "baselineRegexScanRecencyTop20" : {
+    "common-1-term" : {
+      "samples" : 16,
+      "p50Millis" : 23.664,
+      "p95Millis" : 32.646,
+      "p99Millis" : 32.646,
+      "maxMillis" : 33.204,
+      "meanMillis" : 25.801,
+      "note" : "word-boundary regex"
+    },
+    "rare-1-term" : {
+      "samples" : 16,
+      "p50Millis" : 37.317,
+      "p95Millis" : 48.772,
+      "p99Millis" : 48.772,
+      "maxMillis" : 62.312,
+      "meanMillis" : 37.686,
+      "note" : "word-boundary regex"
+    },
+    "and-2-terms" : {
+      "samples" : 16,
+      "p50Millis" : 57.694,
+      "p95Millis" : 121.206,
+      "p99Millis" : 121.206,
+      "maxMillis" : 132.473,
+      "meanMillis" : 65.232,
+      "note" : "word-boundary regex"
+    },
+    "and-3-terms" : {
+      "samples" : 16,
+      "p50Millis" : 31.197,
+      "p95Millis" : 34.35,
+      "p99Millis" : 34.35,
+      "maxMillis" : 42.084,
+      "meanMillis" : 31.213,
+      "note" : "word-boundary regex"
+    },
+    "or-3-terms" : {
+      "samples" : 16,
+      "p50Millis" : 38.554,
+      "p95Millis" : 43.667,
+      "p99Millis" : 43.667,
+      "maxMillis" : 46.356,
+      "meanMillis" : 39.469,
+      "note" : "word-boundary regex"
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "samples" : 16,
+      "p50Millis" : 18.036,
+      "p95Millis" : 41.089,
+      "p99Millis" : 41.089,
+      "maxMillis" : 43.411,
+      "meanMillis" : 22.672,
+      "note" : "word-boundary regex"
+    },
+    "selective(product+term)" : {
+      "samples" : 16,
+      "p50Millis" : 2.09,
+      "p95Millis" : 2.689,
+      "p99Millis" : 2.689,
+      "maxMillis" : 3.275,
+      "meanMillis" : 2.244,
+      "note" : "word-boundary regex"
+    },
+    "large-or(top-3-common)" : {
+      "samples" : 16,
+      "p50Millis" : 34.875,
+      "p95Millis" : 38.903,
+      "p99Millis" : 38.903,
+      "maxMillis" : 39.065,
+      "meanMillis" : 33.905,
+      "note" : "word-boundary regex"
+    }
+  },
+  "baselineIlikeScanRecencyTop20" : {
+    "common-1-term" : {
+      "samples" : 16,
+      "p50Millis" : 46.255,
+      "p95Millis" : 63.62,
+      "p99Millis" : 63.62,
+      "maxMillis" : 72.426,
+      "meanMillis" : 49.487,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "rare-1-term" : {
+      "samples" : 16,
+      "p50Millis" : 37.777,
+      "p95Millis" : 43.919,
+      "p99Millis" : 43.919,
+      "maxMillis" : 46.242,
+      "meanMillis" : 39.357,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "and-2-terms" : {
+      "samples" : 16,
+      "p50Millis" : 40.001,
+      "p95Millis" : 47.601,
+      "p99Millis" : 47.601,
+      "maxMillis" : 48.297,
+      "meanMillis" : 41.949,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "and-3-terms" : {
+      "samples" : 16,
+      "p50Millis" : 38.53,
+      "p95Millis" : 51.612,
+      "p99Millis" : 51.612,
+      "maxMillis" : 55.393,
+      "meanMillis" : 40.385,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "or-3-terms" : {
+      "samples" : 16,
+      "p50Millis" : 32.142,
+      "p95Millis" : 35.194,
+      "p99Millis" : 35.194,
+      "maxMillis" : 35.209,
+      "meanMillis" : 32.008,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "samples" : 16,
+      "p50Millis" : 20.372,
+      "p95Millis" : 26.45,
+      "p99Millis" : 26.45,
+      "maxMillis" : 27.316,
+      "meanMillis" : 21.237,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "selective(product+term)" : {
+      "samples" : 16,
+      "p50Millis" : 2.248,
+      "p95Millis" : 3.51,
+      "p99Millis" : 3.51,
+      "maxMillis" : 3.55,
+      "meanMillis" : 2.483,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "large-or(top-3-common)" : {
+      "samples" : 16,
+      "p50Millis" : 36.569,
+      "p95Millis" : 55.997,
+      "p99Millis" : 55.997,
+      "maxMillis" : 73.113,
+      "meanMillis" : 39.481,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    }
+  },
+  "matchCountAgreementWithRegexScan" : {
+    "common-1-term" : {
+      "identicalCounts" : 6,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.375
+    },
+    "rare-1-term" : {
+      "identicalCounts" : 8,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.0
+    },
+    "and-2-terms" : {
+      "identicalCounts" : 8,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.0
+    },
+    "and-3-terms" : {
+      "identicalCounts" : 7,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.125
+    },
+    "or-3-terms" : {
+      "identicalCounts" : 8,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.0
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "identicalCounts" : 8,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.0
+    },
+    "selective(product+term)" : {
+      "identicalCounts" : 8,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.0
+    },
+    "large-or(top-3-common)" : {
+      "identicalCounts" : 8,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.0
+    }
+  },
+  "throughput" : {
+    "1-thread-qps" : 16817,
+    "4-thread-qps" : 36168,
+    "note" : "mixed workload, all categories round-robin, index only (no HTTP, no hydration)"
+  },
+  "workloadExamples" : [ "common-1-term: AND [not] rmin=;rmax=;asin=;verified=", "rare-1-term: AND [porosity] rmin=;rmax=;asin=;verified=", "and-2-terms: AND [great, stars] rmin=;rmax=;asin=;verified=", "and-3-terms: AND [great, stars, five] rmin=;rmax=;asin=;verified=", "or-3-terms: OR [warmer, bunch, braids] rmin=;rmax=;asin=;verified=", "and-2-filtered(rating>=4,verified): AND [great, stars] rmin=4;rmax=;asin=;verified=true", "selective(product+term): AND [great] rmin=;rmax=;asin=B00P7W9CH8;verified=", "large-or(top-3-common): OR [not, great, have] rmin=;rmax=;asin=;verified=" ]
+}

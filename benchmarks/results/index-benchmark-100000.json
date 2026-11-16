@@ -1,0 +1,370 @@
+{
+  "generatedAt" : "2026-11-16T06:01:31.318117800Z",
+  "machine" : {
+    "os" : "Windows 11 10.0",
+    "java" : "OpenJDK 64-Bit Server VM 21.0.13",
+    "availableProcessors" : 8,
+    "maxHeapBytes" : 2147483648
+  },
+  "table" : "bench_reviews_100000",
+  "documents" : 99678,
+  "build" : {
+    "millis" : 1869,
+    "estimatedIndexBytes" : 62257835,
+    "products" : 39615,
+    "terms" : 39216,
+    "postings" : 2272412,
+    "measuredHeapDeltaBytes" : 83061424,
+    "docsPerSecond" : 53332
+  },
+  "checkpoint" : {
+    "loadMillis" : 403,
+    "writeMillis" : 1026,
+    "loadedOk" : true,
+    "bytes" : 16375918
+  },
+  "indexRelevanceTop20" : {
+    "common-1-term" : {
+      "samples" : 200,
+      "p50Millis" : 0.356,
+      "p95Millis" : 0.793,
+      "p99Millis" : 1.097,
+      "maxMillis" : 1.536,
+      "meanMillis" : 0.41,
+      "meanTotalHits" : 11871
+    },
+    "rare-1-term" : {
+      "samples" : 200,
+      "p50Millis" : 0.002,
+      "p95Millis" : 0.005,
+      "p99Millis" : 0.009,
+      "maxMillis" : 0.016,
+      "meanMillis" : 0.003,
+      "meanTotalHits" : 9
+    },
+    "and-2-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.1,
+      "p95Millis" : 1.027,
+      "p99Millis" : 1.713,
+      "maxMillis" : 8.395,
+      "meanMillis" : 0.288,
+      "meanTotalHits" : 847
+    },
+    "and-3-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.057,
+      "p95Millis" : 0.558,
+      "p99Millis" : 0.7,
+      "maxMillis" : 0.797,
+      "meanMillis" : 0.118,
+      "meanTotalHits" : 54
+    },
+    "or-3-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.079,
+      "p95Millis" : 0.246,
+      "p99Millis" : 0.349,
+      "maxMillis" : 0.709,
+      "meanMillis" : 0.102,
+      "meanTotalHits" : 1554
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "samples" : 200,
+      "p50Millis" : 0.051,
+      "p95Millis" : 0.577,
+      "p99Millis" : 0.627,
+      "maxMillis" : 0.88,
+      "meanMillis" : 0.124,
+      "meanTotalHits" : 492
+    },
+    "selective(product+term)" : {
+      "samples" : 200,
+      "p50Millis" : 0.003,
+      "p95Millis" : 0.013,
+      "p99Millis" : 0.049,
+      "maxMillis" : 0.089,
+      "meanMillis" : 0.005,
+      "meanTotalHits" : 2
+    },
+    "large-or(top-3-common)" : {
+      "samples" : 200,
+      "p50Millis" : 2.816,
+      "p95Millis" : 3.308,
+      "p99Millis" : 3.911,
+      "maxMillis" : 4.459,
+      "meanMillis" : 2.889,
+      "meanTotalHits" : 53846
+    }
+  },
+  "indexRecencyTop20" : {
+    "common-1-term" : {
+      "samples" : 200,
+      "p50Millis" : 0.2,
+      "p95Millis" : 0.48,
+      "p99Millis" : 0.664,
+      "maxMillis" : 0.762,
+      "meanMillis" : 0.231
+    },
+    "rare-1-term" : {
+      "samples" : 200,
+      "p50Millis" : 0.002,
+      "p95Millis" : 0.003,
+      "p99Millis" : 0.003,
+      "maxMillis" : 0.012,
+      "meanMillis" : 0.002
+    },
+    "and-2-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.062,
+      "p95Millis" : 0.868,
+      "p99Millis" : 1.494,
+      "maxMillis" : 3.716,
+      "meanMillis" : 0.197
+    },
+    "and-3-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.028,
+      "p95Millis" : 0.366,
+      "p99Millis" : 1.043,
+      "maxMillis" : 1.604,
+      "meanMillis" : 0.091
+    },
+    "or-3-terms" : {
+      "samples" : 200,
+      "p50Millis" : 0.05,
+      "p95Millis" : 0.137,
+      "p99Millis" : 0.205,
+      "maxMillis" : 0.245,
+      "meanMillis" : 0.062
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "samples" : 200,
+      "p50Millis" : 0.036,
+      "p95Millis" : 0.473,
+      "p99Millis" : 0.539,
+      "maxMillis" : 0.682,
+      "meanMillis" : 0.099
+    },
+    "selective(product+term)" : {
+      "samples" : 200,
+      "p50Millis" : 0.001,
+      "p95Millis" : 0.007,
+      "p99Millis" : 0.013,
+      "maxMillis" : 0.015,
+      "meanMillis" : 0.002
+    },
+    "large-or(top-3-common)" : {
+      "samples" : 200,
+      "p50Millis" : 1.895,
+      "p95Millis" : 2.254,
+      "p99Millis" : 2.679,
+      "maxMillis" : 2.743,
+      "meanMillis" : 1.951
+    }
+  },
+  "indexAllQueries" : {
+    "samples" : 1600,
+    "p50Millis" : 0.068,
+    "p95Millis" : 2.845,
+    "p99Millis" : 3.213,
+    "maxMillis" : 8.395,
+    "meanMillis" : 0.492
+  },
+  "baselineRegexScanRecencyTop20" : {
+    "common-1-term" : {
+      "samples" : 16,
+      "p50Millis" : 127.511,
+      "p95Millis" : 245.656,
+      "p99Millis" : 245.656,
+      "maxMillis" : 256.439,
+      "meanMillis" : 139.202,
+      "note" : "word-boundary regex"
+    },
+    "rare-1-term" : {
+      "samples" : 16,
+      "p50Millis" : 141.915,
+      "p95Millis" : 217.55,
+      "p99Millis" : 217.55,
+      "maxMillis" : 252.905,
+      "meanMillis" : 150.085,
+      "note" : "word-boundary regex"
+    },
+    "and-2-terms" : {
+      "samples" : 16,
+      "p50Millis" : 254.314,
+      "p95Millis" : 402.827,
+      "p99Millis" : 402.827,
+      "maxMillis" : 415.021,
+      "meanMillis" : 271.146,
+      "note" : "word-boundary regex"
+    },
+    "and-3-terms" : {
+      "samples" : 16,
+      "p50Millis" : 246.76,
+      "p95Millis" : 327.823,
+      "p99Millis" : 327.823,
+      "maxMillis" : 350.759,
+      "meanMillis" : 247.969,
+      "note" : "word-boundary regex"
+    },
+    "or-3-terms" : {
+      "samples" : 16,
+      "p50Millis" : 164.4,
+      "p95Millis" : 440.241,
+      "p99Millis" : 440.241,
+      "maxMillis" : 502.956,
+      "meanMillis" : 204.103,
+      "note" : "word-boundary regex"
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "samples" : 16,
+      "p50Millis" : 68.483,
+      "p95Millis" : 104.919,
+      "p99Millis" : 104.919,
+      "maxMillis" : 107.855,
+      "meanMillis" : 74.446,
+      "note" : "word-boundary regex"
+    },
+    "selective(product+term)" : {
+      "samples" : 16,
+      "p50Millis" : 12.249,
+      "p95Millis" : 13.519,
+      "p99Millis" : 13.519,
+      "maxMillis" : 15.343,
+      "meanMillis" : 12.39,
+      "note" : "word-boundary regex"
+    },
+    "large-or(top-3-common)" : {
+      "samples" : 16,
+      "p50Millis" : 267.013,
+      "p95Millis" : 412.395,
+      "p99Millis" : 412.395,
+      "maxMillis" : 440.122,
+      "meanMillis" : 295.952,
+      "note" : "word-boundary regex"
+    }
+  },
+  "baselineIlikeScanRecencyTop20" : {
+    "common-1-term" : {
+      "samples" : 16,
+      "p50Millis" : 280.049,
+      "p95Millis" : 525.434,
+      "p99Millis" : 525.434,
+      "maxMillis" : 998.184,
+      "meanMillis" : 334.156,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "rare-1-term" : {
+      "samples" : 16,
+      "p50Millis" : 333.592,
+      "p95Millis" : 524.884,
+      "p99Millis" : 524.884,
+      "maxMillis" : 594.417,
+      "meanMillis" : 368.428,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "and-2-terms" : {
+      "samples" : 16,
+      "p50Millis" : 328.757,
+      "p95Millis" : 484.879,
+      "p99Millis" : 484.879,
+      "maxMillis" : 557.043,
+      "meanMillis" : 345.737,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "and-3-terms" : {
+      "samples" : 16,
+      "p50Millis" : 177.708,
+      "p95Millis" : 381.209,
+      "p99Millis" : 381.209,
+      "maxMillis" : 444.307,
+      "meanMillis" : 221.826,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "or-3-terms" : {
+      "samples" : 16,
+      "p50Millis" : 309.499,
+      "p95Millis" : 385.209,
+      "p99Millis" : 385.209,
+      "maxMillis" : 404.765,
+      "meanMillis" : 324.243,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "samples" : 16,
+      "p50Millis" : 92.05,
+      "p95Millis" : 133.942,
+      "p99Millis" : 133.942,
+      "maxMillis" : 135.845,
+      "meanMillis" : 99.746,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "selective(product+term)" : {
+      "samples" : 16,
+      "p50Millis" : 12.457,
+      "p95Millis" : 13.651,
+      "p99Millis" : 13.651,
+      "maxMillis" : 13.804,
+      "meanMillis" : 12.496,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    },
+    "large-or(top-3-common)" : {
+      "samples" : 16,
+      "p50Millis" : 701.113,
+      "p95Millis" : 975.21,
+      "p99Millis" : 975.21,
+      "maxMillis" : 1445.228,
+      "meanMillis" : 704.97,
+      "note" : "substring semantics (first term only for OR); latency reference only"
+    }
+  },
+  "matchCountAgreementWithRegexScan" : {
+    "common-1-term" : {
+      "identicalCounts" : 4,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 2.0
+    },
+    "rare-1-term" : {
+      "identicalCounts" : 8,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.0
+    },
+    "and-2-terms" : {
+      "identicalCounts" : 5,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.375
+    },
+    "and-3-terms" : {
+      "identicalCounts" : 7,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.125
+    },
+    "or-3-terms" : {
+      "identicalCounts" : 6,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 11.875
+    },
+    "and-2-filtered(rating>=4,verified)" : {
+      "identicalCounts" : 6,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.25
+    },
+    "selective(product+term)" : {
+      "identicalCounts" : 8,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 0.0
+    },
+    "large-or(top-3-common)" : {
+      "identicalCounts" : 0,
+      "queries" : 8,
+      "meanAbsoluteDifference" : 1.0
+    }
+  },
+  "throughput" : {
+    "1-thread-qps" : 1514,
+    "4-thread-qps" : 3247,
+    "note" : "mixed workload, all categories round-robin, index only (no HTTP, no hydration)"
+  },
+  "workloadExamples" : [ "common-1-term: AND [not] rmin=;rmax=;asin=;verified=", "rare-1-term: AND [haircube] rmin=;rmax=;asin=;verified=", "and-2-terms: AND [works, bottoms] rmin=;rmax=;asin=;verified=", "and-3-terms: AND [works, bottoms, toes] rmin=;rmax=;asin=;verified=", "or-3-terms: OR [stock, coarse, under] rmin=;rmax=;asin=;verified=", "and-2-filtered(rating>=4,verified): AND [works, bottoms] rmin=4;rmax=;asin=;verified=true", "selective(product+term): AND [works] rmin=;rmax=;asin=B004H5D40W;verified=", "large-or(top-3-common): OR [not, great, have] rmin=;rmax=;asin=;verified=" ]
+}

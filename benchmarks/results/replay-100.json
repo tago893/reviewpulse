@@ -1,0 +1,138 @@
+{
+  "label": "replay-100",
+  "file": "live-100",
+  "targetRate": 100.0,
+  "created": 1498,
+  "skippedExisting": 0,
+  "failures": 0,
+  "elapsedSecondsUntilDrained": 17.7,
+  "averageEndToEndEventsPerSecond": 84.5,
+  "peakAchievedWriteRate": 100.0,
+  "maxBacklogEvents": 33,
+  "serverCommitToIndexedMillis": {
+    "delayP50Millis": 104.824832,
+    "delayP95Millis": 192.905216,
+    "delayP99Millis": 218.07104
+  },
+  "samples": [
+    {
+      "t": 1.0,
+      "position": 100,
+      "achievedRate": 99.4,
+      "backlog": 13,
+      "indexEventsPerSecond": 6.1
+    },
+    {
+      "t": 2.1,
+      "position": 202,
+      "achievedRate": 99.5,
+      "backlog": 23,
+      "indexEventsPerSecond": 18.4
+    },
+    {
+      "t": 3.1,
+      "position": 308,
+      "achievedRate": 99.9,
+      "backlog": 23,
+      "indexEventsPerSecond": 29.4
+    },
+    {
+      "t": 4.2,
+      "position": 409,
+      "achievedRate": 99.7,
+      "backlog": 15,
+      "indexEventsPerSecond": 40.0
+    },
+    {
+      "t": 5.2,
+      "position": 518,
+      "achievedRate": 99.4,
+      "backlog": 15,
+      "indexEventsPerSecond": 51.6
+    },
+    {
+      "t": 6.3,
+      "position": 616,
+      "achievedRate": 98.6,
+      "backlog": 20,
+      "indexEventsPerSecond": 62.7
+    },
+    {
+      "t": 7.3,
+      "position": 726,
+      "achievedRate": 99.6,
+      "backlog": 20,
+      "indexEventsPerSecond": 73.2
+    },
+    {
+      "t": 8.4,
+      "position": 816,
+      "achievedRate": 98.2,
+      "backlog": 29,
+      "indexEventsPerSecond": 83.8
+    },
+    {
+      "t": 9.4,
+      "position": 908,
+      "achievedRate": 97.3,
+      "backlog": 33,
+      "indexEventsPerSecond": 93.0
+    },
+    {
+      "t": 10.4,
+      "position": 1034,
+      "achievedRate": 100.0,
+      "backlog": 31,
+      "indexEventsPerSecond": 99.0
+    },
+    {
+      "t": 11.4,
+      "position": 1140,
+      "achievedRate": 99.9,
+      "backlog": 27,
+      "indexEventsPerSecond": 99.8
+    },
+    {
+      "t": 12.5,
+      "position": 1241,
+      "achievedRate": 99.9,
+      "backlog": 17,
+      "indexEventsPerSecond": 99.4
+    },
+    {
+      "t": 13.5,
+      "position": 1345,
+      "achievedRate": 99.9,
+      "backlog": 17,
+      "indexEventsPerSecond": 100.7
+    },
+    {
+      "t": 14.7,
+      "position": 1440,
+      "achievedRate": 99.4,
+      "backlog": 18,
+      "indexEventsPerSecond": 99.6
+    },
+    {
+      "t": 15.7,
+      "position": 1498,
+      "achievedRate": 0.0,
+      "backlog": 12,
+      "indexEventsPerSecond": 97.7
+    },
+    {
+      "t": 16.7,
+      "position": 1498,
+      "achievedRate": 0.0,
+      "backlog": 7,
+      "indexEventsPerSecond": 93.2
+    },
+    {
+      "t": 17.7,
+      "position": 1498,
+      "achievedRate": 0.0,
+      "backlog": 0,
+      "indexEventsPerSecond": 82.6
+    }
+  ]
+}

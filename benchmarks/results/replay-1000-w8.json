@@ -1,0 +1,202 @@
+{
+  "label": "replay-1000-w8",
+  "file": "live-1000-w8",
+  "targetRate": 1000.0,
+  "writers": 8,
+  "created": 11941,
+  "skippedExisting": 0,
+  "failures": 0,
+  "elapsedSecondsUntilDrained": 28.3,
+  "averageEndToEndEventsPerSecond": 421.8,
+  "peakAchievedWriteRate": 462.7,
+  "maxBacklogEvents": 275,
+  "serverCommitToIndexedMillis": {
+    "delayP50Millis": 121.602048,
+    "delayP95Millis": 260.01408,
+    "delayP99Millis": 805.2736
+  },
+  "samples": [
+    {
+      "t": 1.5,
+      "position": 235,
+      "achievedRate": 264.5,
+      "backlog": 231,
+      "indexEventsPerSecond": 14.9
+    },
+    {
+      "t": 2.6,
+      "position": 390,
+      "achievedRate": 180.1,
+      "backlog": 275,
+      "indexEventsPerSecond": 55.2
+    },
+    {
+      "t": 3.7,
+      "position": 832,
+      "achievedRate": 255.6,
+      "backlog": 130,
+      "indexEventsPerSecond": 111.1
+    },
+    {
+      "t": 4.8,
+      "position": 1246,
+      "achievedRate": 285.3,
+      "backlog": 91,
+      "indexEventsPerSecond": 142.1
+    },
+    {
+      "t": 5.9,
+      "position": 1777,
+      "achievedRate": 324.9,
+      "backlog": 82,
+      "indexEventsPerSecond": 173.1
+    },
+    {
+      "t": 6.9,
+      "position": 2420,
+      "achievedRate": 367.1,
+      "backlog": 84,
+      "indexEventsPerSecond": 233.1
+    },
+    {
+      "t": 8.0,
+      "position": 3008,
+      "achievedRate": 393.9,
+      "backlog": 85,
+      "indexEventsPerSecond": 303.3
+    },
+    {
+      "t": 9.1,
+      "position": 3584,
+      "achievedRate": 408.8,
+      "backlog": 104,
+      "indexEventsPerSecond": 355.8
+    },
+    {
+      "t": 10.2,
+      "position": 4318,
+      "achievedRate": 438.9,
+      "backlog": 66,
+      "indexEventsPerSecond": 417.6
+    },
+    {
+      "t": 11.2,
+      "position": 4940,
+      "achievedRate": 452.6,
+      "backlog": 153,
+      "indexEventsPerSecond": 492.8
+    },
+    {
+      "t": 12.4,
+      "position": 5515,
+      "achievedRate": 460.9,
+      "backlog": 155,
+      "indexEventsPerSecond": 528.4
+    },
+    {
+      "t": 13.4,
+      "position": 6054,
+      "achievedRate": 462.7,
+      "backlog": 54,
+      "indexEventsPerSecond": 536.4
+    },
+    {
+      "t": 14.5,
+      "position": 6250,
+      "achievedRate": 443.0,
+      "backlog": 49,
+      "indexEventsPerSecond": 547.5
+    },
+    {
+      "t": 15.5,
+      "position": 6479,
+      "achievedRate": 426.5,
+      "backlog": 74,
+      "indexEventsPerSecond": 518.9
+    },
+    {
+      "t": 16.6,
+      "position": 6813,
+      "achievedRate": 420.0,
+      "backlog": 104,
+      "indexEventsPerSecond": 452.0
+    },
+    {
+      "t": 17.7,
+      "position": 7287,
+      "achievedRate": 419.5,
+      "backlog": 123,
+      "indexEventsPerSecond": 435.4
+    },
+    {
+      "t": 18.7,
+      "position": 7604,
+      "achievedRate": 413.3,
+      "backlog": 85,
+      "indexEventsPerSecond": 419.2
+    },
+    {
+      "t": 19.8,
+      "position": 8000,
+      "achievedRate": 410.9,
+      "backlog": 50,
+      "indexEventsPerSecond": 363.8
+    },
+    {
+      "t": 20.9,
+      "position": 8514,
+      "achievedRate": 414.6,
+      "backlog": 77,
+      "indexEventsPerSecond": 362.9
+    },
+    {
+      "t": 21.9,
+      "position": 8963,
+      "achievedRate": 414.5,
+      "backlog": 133,
+      "indexEventsPerSecond": 352.4
+    },
+    {
+      "t": 23.1,
+      "position": 9751,
+      "achievedRate": 429.9,
+      "backlog": 164,
+      "indexEventsPerSecond": 355.2
+    },
+    {
+      "t": 24.1,
+      "position": 10568,
+      "achievedRate": 443.9,
+      "backlog": 163,
+      "indexEventsPerSecond": 422.1
+    },
+    {
+      "t": 25.2,
+      "position": 11124,
+      "achievedRate": 447.9,
+      "backlog": 113,
+      "indexEventsPerSecond": 486.0
+    },
+    {
+      "t": 26.2,
+      "position": 11759,
+      "achievedRate": 453.8,
+      "backlog": 108,
+      "indexEventsPerSecond": 496.4
+    },
+    {
+      "t": 27.3,
+      "position": 11941,
+      "achievedRate": 0.0,
+      "backlog": 71,
+      "indexEventsPerSecond": 530.3
+    },
+    {
+      "t": 28.3,
+      "position": 11941,
+      "achievedRate": 0.0,
+      "backlog": 0,
+      "indexEventsPerSecond": 490.1
+    }
+  ]
+}

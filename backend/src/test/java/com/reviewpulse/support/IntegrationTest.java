@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Import;
         "reviewpulse.index.import-check-seconds=1",
         "reviewpulse.rate-limit.reads-per-second=100000",
         "reviewpulse.rate-limit.writes-per-second=100000",
+        "reviewpulse.cache.enabled=true",
         "reviewpulse.cache.bypass-millis=1000",
         "reviewpulse.replay.dir=target/it-replay"})
 @AutoConfigureMockMvc
