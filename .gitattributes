@@ -1,0 +1,6 @@
+# Normalize line endings in the repository; shell scripts must stay LF to run in containers/Git Bash.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.parquet binary
+*.png binary

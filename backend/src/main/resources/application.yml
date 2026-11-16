@@ -29,6 +29,17 @@ server:
     max-http-form-post-size: 64KB
     max-swallow-size: 64KB
 
+reviewpulse:
+  search:
+    query-budget-millis: ${REVIEWPULSE_QUERY_BUDGET_MILLIS:2000}
+    default-page-size: 20
+  admin:
+    # Required for /api/admin/**. Empty = admin endpoints disabled (fail closed).
+    token: ${REVIEWPULSE_ADMIN_TOKEN:}
+  index:
+    build-fetch-size: 2000
+    build-on-startup: true
+
 management:
   endpoints:
     web:
