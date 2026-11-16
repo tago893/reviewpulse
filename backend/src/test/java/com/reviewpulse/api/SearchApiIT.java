@@ -126,10 +126,16 @@ class SearchApiIT {
     @Test
     void reviewDeletedInDatabaseButNotYetInIndexIsNeverShown() {
         jdbc.sql("UPDATE reviews SET deleted = TRUE, deleted_at = now(), version = version + 1 WHERE id = 9").update();
-        MvcTestResult result = search("q", "dry skin");
-        assertThat(result).bodyJson().extractingPath("$.data.results[*].id").asArray().containsExactly("1");
-        assertThat(result).bodyJson().extractingPath("$.meta.staleHitsDropped").asNumber().isEqualTo(1);
-        assertThat(mvc.get().uri("/api/reviews/9")).hasStatus(404);
+        try {
+            MvcTestResult result = search("q", "dry skin");
+            assertThat(result).bodyJson().extractingPath("$.data.results[*].id").asArray().containsExactly("1");
+            assertThat(result).bodyJson().extractingPath("$.meta.staleHitsDropped").asNumber().isEqualTo(1);
+            assertThat(mvc.get().uri("/api/reviews/9")).hasStatus(404);
+        } finally {
+            // The delete above bypassed the event pipeline on purpose; resync so later test classes see a
+            // consistent index.
+            rebuildAndWait();
+        }
     }
 
     @Test

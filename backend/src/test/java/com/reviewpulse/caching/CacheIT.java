@@ -16,6 +16,9 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 import com.jayway.jsonpath.JsonPath;
+import com.reviewpulse.events.IndexerWorker;
+import com.reviewpulse.search.IndexState;
+import com.reviewpulse.search.IndexStatus;
 import com.reviewpulse.reviews.Review;
 import com.reviewpulse.reviews.ReviewService;
 import com.reviewpulse.search.index.SearchIndex;
@@ -35,6 +38,10 @@ class CacheIT {
     SearchIndex index;
     @Autowired
     JdbcClient jdbc;
+    @Autowired
+    IndexerWorker indexer;
+    @Autowired
+    IndexStatus status;
 
     /**
      * The first Redis command after startup can exceed the 150 ms timeout while Lettuce connects, which
@@ -116,11 +123,24 @@ class CacheIT {
         // Delete behind the index's back: generation is unchanged, so the cached hit-list is reused...
         jdbc.sql("UPDATE reviews SET deleted = TRUE, deleted_at = now(), version = version + 1 WHERE id = :id")
                 .param("id", r.id()).update();
-        MvcTestResult cached = search(w);
-        assertThat((String) path(cached, "$.meta.cache")).isEqualTo("HIT");
-        // ...but hydration from PostgreSQL drops the deleted review.
-        assertThat((List<String>) path(cached, "$.data.results")).isEmpty();
-        assertThat((Integer) path(cached, "$.meta.staleHitsDropped")).isEqualTo(1);
+        try {
+            MvcTestResult cached = search(w);
+            assertThat((String) path(cached, "$.meta.cache")).isEqualTo("HIT");
+            // ...but hydration from PostgreSQL drops the deleted review.
+            assertThat((List<String>) path(cached, "$.data.results")).isEmpty();
+            assertThat((Integer) path(cached, "$.meta.staleHitsDropped")).isEqualTo(1);
+        } finally {
+            resyncIndexWithDatabase();
+        }
+    }
+
+    /**
+     * This test deliberately desynchronizes the index from PostgreSQL (a delete with no event). Rebuild
+     * afterwards so later test classes, which check index/database consistency, start from a clean state.
+     */
+    private void resyncIndexWithDatabase() {
+        await().atMost(EVENTUALLY).until(() -> indexer.requestRebuild("test cleanup: resync after direct DB edit"));
+        await().atMost(EVENTUALLY).until(() -> !indexer.isRebuilding() && status.snapshot().state() == IndexState.LIVE);
     }
 
     @Test

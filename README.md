@@ -125,10 +125,9 @@ cd frontend && npm run e2e       # Playwright end-to-end tests against the runni
 cd frontend && npm run demo      # records the walkthrough video to frontend/test-results/
 ```
 
-A GitHub Actions workflow is ready in [`docs/ci/github-actions-ci.yml`](docs/ci/github-actions-ci.yml). It
-runs the backend unit + Testcontainers integration tests, the data-tool tests and the frontend
-typecheck/build on every push. To enable it, copy it to `.github/workflows/ci.yml` (on github.com: *Add
-file → Create new file*, paste it). The end-to-end tests need a running stack with data, so they run
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push: the backend unit +
+Testcontainers integration tests (real PostgreSQL, Kafka and Redis on the runner), the data-tool tests,
+and the frontend typecheck/build. The end-to-end tests need a running stack with data, so they run
 locally rather than in CI.
 
 Coverage (unit + integration, JaCoCo, last run): **92% of instructions, 81% of branches**. The search
