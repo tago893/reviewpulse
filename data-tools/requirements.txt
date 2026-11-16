@@ -1,0 +1,4 @@
+# Python 3.10+. pyarrow 21 is the newest release that supports Python 3.10.
+pyarrow==21.0.0
+psycopg[binary]==3.3.9
+pytest==8.4.2

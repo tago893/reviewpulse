@@ -1,0 +1,41 @@
+# --- Data, generated indexes, benchmark artifacts (never commit) ---
+/data/raw/
+/data/replay/
+/data/import-stats/
+/data/rejects/
+/data/index/
+/data/*.parquet
+/data/*.jsonl
+/benchmarks/results/raw/
+*.snapshot
+*.snapshot.tmp
+
+# --- Local environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Java / Maven ---
+target/
+*.class
+*.log
+hs_err_pid*
+.mvn/wrapper/maven-wrapper.jar
+
+# --- Node / frontend ---
+node_modules/
+dist/
+*.tsbuildinfo
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
