@@ -107,9 +107,14 @@ Review ids are strings in JSON: dataset ids exceed 2^53 and would lose precision
 
 ```bash
 cd backend && ./mvnw verify      # 97 unit tests + 27 integration tests (Testcontainers: PostgreSQL, Kafka, Redis)
+                                 # merged coverage report: backend/target/site/jacoco-merged/index.html
 cd data-tools && .venv/Scripts/python -m pytest -q    # 26 tests (one uses the local PostgreSQL)
 cd frontend && npm run build     # strict TypeScript + production build
 ```
+
+Coverage (unit + integration, JaCoCo, last run): **88% of instructions, 77% of branches**. The search
+engine packages are at 97–100% instructions; the weakest areas are the metrics-summary service (48%)
+and the outbox publisher's non-retriable failure branches.
 
 Highlights of what is tested:
 
