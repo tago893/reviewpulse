@@ -128,6 +128,23 @@ public final class SearchIndex {
         }
     }
 
+    /**
+     * Compacts if there are dead documents and returns the (now compact) current index for
+     * serialization. Only the single writer may call this, and it must not mutate meanwhile;
+     * concurrent readers are fine because nothing mutates the returned instance.
+     */
+    public InvertedIndex compactedForSnapshot() {
+        writerMutex.lock();
+        try {
+            if (read(InvertedIndex::stats).deadDocs() > 0) {
+                forceCompaction();
+            }
+            return read(idx -> idx);
+        } finally {
+            writerMutex.unlock();
+        }
+    }
+
     public long generation() {
         return generation;
     }

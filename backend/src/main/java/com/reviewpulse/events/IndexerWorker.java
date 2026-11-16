@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -16,8 +17,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Component;
 
 import com.reviewpulse.config.ReviewPulseProperties;
 import com.reviewpulse.observability.IndexerProgress;
+import com.reviewpulse.reviews.ImportRunRepository;
 import com.reviewpulse.search.IndexBuilder;
 import com.reviewpulse.search.IndexState;
 import com.reviewpulse.search.IndexStatus;
@@ -40,23 +42,24 @@ import com.reviewpulse.search.index.SearchIndex;
  * The single writer of the search index.
  *
  * <p>One thread owns a {@link KafkaConsumer} with manual partition assignment and keeps, per
- * partition, the next offset NOT yet reflected in the index ({@code positions}). It never commits
- * a position past a record it did not apply or durably dead-letter.
+ * partition, the next offset NOT yet reflected in the index ({@code positions}).
+ *
+ * <h2>Durability contract</h2>
+ * Applied events are searchable immediately but durable only once a checkpoint (index snapshot plus
+ * {@code positions}) has been written. Kafka offsets are committed only after that, and recovery starts
+ * from the checkpoint's offsets. A crash therefore loses no events: everything after the checkpoint is
+ * replayed, and anything replayed twice is dropped by the version check (effectively-once index state
+ * over at-least-once delivery, not exactly-once processing).
  *
  * <h2>Rebuild protocol (no lost updates)</h2>
- * <ol>
- *   <li>Read the topic's end offsets E.</li>
- *   <li>Scan PostgreSQL into a new index (one consistent snapshot).</li>
- *   <li>Swap the index in and continue consuming from E.</li>
- * </ol>
- * Every event below E was published after its transaction committed, so the scan (which starts
- * after E was read) already contains it. Events at or after E are replayed; ones the scan already
- * reflected are dropped by the version check. If Kafka is down, the index is still built so search
- * works, and consumption later starts from the beginning of the topic (correct, just slower).
+ * Read end offsets E, then scan PostgreSQL, swap the new index in and consume from E. Every event below
+ * E was published after its transaction committed, so the scan (started after E was read) contains it.
+ * If Kafka is down, the index is still built so search works, and consumption later starts from the
+ * beginning of the topic (correct, just slower).
  *
  * <h2>Failure handling</h2>
- * Poison events go to the dead-letter topic. If even that fails, the consumer rewinds to the poison
- * record and retries with backoff: progress stops, visibly (state DEGRADED), instead of data being lost.
+ * Poison events go to the dead-letter topic. If that fails too, the consumer rewinds and retries with
+ * backoff: progress stops, visibly (DEGRADED), instead of data being skipped.
  */
 @Component
 public class IndexerWorker implements SmartLifecycle {
@@ -74,9 +77,12 @@ public class IndexerWorker implements SmartLifecycle {
     private final ReviewEventCodec codec;
     private final DeadLetterPublisher deadLetters;
     private final IndexerProgress progress;
+    private final IndexCheckpoints checkpoints;
+    private final ImportRunRepository imports;
 
     private final LinkedBlockingQueue<String> rebuildRequests = new LinkedBlockingQueue<>();
     private final AtomicBoolean rebuildPending = new AtomicBoolean(false);
+    private final AtomicBoolean snapshotRequested = new AtomicBoolean(false);
     private volatile boolean running;
     private volatile Thread thread;
     private volatile KafkaConsumer<String, byte[]> activeConsumer;
@@ -85,10 +91,15 @@ public class IndexerWorker implements SmartLifecycle {
     private Map<TopicPartition, Long> positions;
     private boolean replayFromBeginning;
     private String degradedReason;
+    private String topicId;
+    private long indexedImportRunId;
+    private long lastCheckpointGeneration = -1;
+    private long nextCheckpointAt;
+    private long nextImportCheckAt;
 
     public IndexerWorker(ReviewPulseProperties properties, KafkaTopics topics, IndexBuilder builder, SearchIndex index,
                          IndexStatus status, ReviewEventCodec codec, DeadLetterPublisher deadLetters,
-                         IndexerProgress progress) {
+                         IndexerProgress progress, IndexCheckpoints checkpoints, ImportRunRepository imports) {
         this.kafka = properties.kafka();
         this.indexConfig = properties.index();
         this.topics = topics;
@@ -98,6 +109,8 @@ public class IndexerWorker implements SmartLifecycle {
         this.codec = codec;
         this.deadLetters = deadLetters;
         this.progress = progress;
+        this.checkpoints = checkpoints;
+        this.imports = imports;
     }
 
     // ------------------------------------------------------------------ public API
@@ -115,10 +128,27 @@ public class IndexerWorker implements SmartLifecycle {
         return rebuildPending.get();
     }
 
+    /** Asks for a checkpoint at the next loop iteration (admin/testing). */
+    public void requestSnapshot() {
+        snapshotRequested.set(true);
+    }
+
+    public boolean isSnapshotPending() {
+        return snapshotRequested.get();
+    }
+
     // ------------------------------------------------------------------ lifecycle
 
     @Override
     public void start() {
+        // A (re)start begins from durable state only, exactly like a new process.
+        positions = null;
+        replayFromBeginning = false;
+        degradedReason = null;
+        topicId = null;
+        indexedImportRunId = 0;
+        lastCheckpointGeneration = -1;
+        rebuildRequests.clear();
         running = true;
         rebuildPending.set(true);
         rebuildRequests.offer("startup");
@@ -127,6 +157,7 @@ public class IndexerWorker implements SmartLifecycle {
         thread.start();
     }
 
+    /** Graceful: the consumer is woken, the loop writes a final checkpoint and exits. */
     @Override
     public void stop() {
         running = false;
@@ -135,13 +166,17 @@ public class IndexerWorker implements SmartLifecycle {
             consumer.wakeup();
         }
         Thread t = thread;
-        if (t != null) {
-            t.interrupt();
-            try {
-                t.join(TimeUnit.SECONDS.toMillis(15));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+        if (t == null) {
+            return;
+        }
+        try {
+            t.join(TimeUnit.SECONDS.toMillis(20));
+            if (t.isAlive()) {
+                t.interrupt();
+                t.join(TimeUnit.SECONDS.toMillis(5));
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -191,9 +226,8 @@ public class IndexerWorker implements SmartLifecycle {
     }
 
     private List<TopicPartition> connect(KafkaConsumer<String, byte[]> consumer) throws InterruptedException {
-        topics.ensureTopics();
-        List<PartitionInfo> infos = consumer.partitionsFor(kafka.topic(), Duration.ofMillis(kafka.apiTimeoutMillis()));
-        List<TopicPartition> partitions = infos.stream()
+        topicId = topics.ensureTopics().toString();
+        List<TopicPartition> partitions = consumer.partitionsFor(kafka.topic(), apiTimeout()).stream()
                 .map(p -> new TopicPartition(p.topic(), p.partition()))
                 .sorted((a, b) -> Integer.compare(a.partition(), b.partition()))
                 .toList();
@@ -201,14 +235,16 @@ public class IndexerWorker implements SmartLifecycle {
         return partitions;
     }
 
-    /** Decides where consumption starts: rebuild, replay from the beginning, or resume. */
+    /** Decides where consumption starts: restore a checkpoint, rebuild, replay from the beginning, or resume. */
     private void positionConsumer(KafkaConsumer<String, byte[]> consumer, List<TopicPartition> partitions) {
         String reason = rebuildRequests.poll();
-        if (reason != null || (positions == null && !replayFromBeginning)) {
+        boolean fresh = positions == null && !replayFromBeginning;
+        if (fresh && "startup".equals(reason) && restoreCheckpoint(consumer, partitions)) {
+            log.info("index restored from checkpoint; replaying events after it");
+        } else if (reason != null || fresh) {
             rebuildWithOffsets(consumer, partitions, reason != null ? reason : "startup", true);
         } else if (replayFromBeginning) {
-            Map<TopicPartition, Long> beginning = consumer.beginningOffsets(partitions,
-                    Duration.ofMillis(kafka.apiTimeoutMillis()));
+            Map<TopicPartition, Long> beginning = consumer.beginningOffsets(partitions, apiTimeout());
             log.info("index was built while Kafka was unreachable; replaying topic from the beginning {}", beginning);
             positions = new HashMap<>(beginning);
             replayFromBeginning = false;
@@ -219,28 +255,87 @@ public class IndexerWorker implements SmartLifecycle {
         markLiveIfHealthy();
     }
 
+    private boolean restoreCheckpoint(KafkaConsumer<String, byte[]> consumer, List<TopicPartition> partitions) {
+        status.transition(IndexState.BUILDING, "loading index checkpoint");
+        Map<TopicPartition, Long> beginning = consumer.beginningOffsets(partitions, apiTimeout());
+        Map<TopicPartition, Long> end = consumer.endOffsets(partitions, apiTimeout());
+        Optional<IndexCheckpoints.Restored> restored = checkpoints.restore(topicId, partitions, beginning, end,
+                imports.latestCompletedId());
+        if (restored.isEmpty()) {
+            return false;
+        }
+        IndexCheckpoints.Restored r = restored.get();
+        index.replace(r.index());
+        positions = new HashMap<>(r.positions());
+        indexedImportRunId = r.importRunId();
+        lastCheckpointGeneration = index.generation();
+        seekAll(consumer, partitions);
+        long behind = 0;
+        for (TopicPartition tp : partitions) {
+            behind += end.getOrDefault(tp, 0L) - positions.getOrDefault(tp, 0L);
+        }
+        status.buildCompleted(r.loadMillis(), IndexState.LIVE,
+                "restored from checkpoint (" + r.bytes() + " bytes, age " + r.ageMillis() / 1000 + " s); replaying "
+                        + behind + " events");
+        rebuildPending.set(false);
+        publishPositions();
+        return true;
+    }
+
     private void consume(KafkaConsumer<String, byte[]> consumer, List<TopicPartition> partitions) {
         long nextLagRefresh = 0;
+        nextCheckpointAt = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(indexConfig.snapshotIntervalSeconds());
+        nextImportCheckAt = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(indexConfig.importCheckSeconds());
         while (running) {
-            String reason = rebuildRequests.poll();
-            if (reason != null) {
-                rebuildWithOffsets(consumer, partitions, reason, false);
-            }
-            ConsumerRecords<String, byte[]> records;
             try {
-                records = consumer.poll(Duration.ofMillis(kafka.pollTimeoutMillis()));
-            } catch (OffsetOutOfRangeException e) {
-                log.error("offsets {} are no longer in Kafka (retention); rebuilding from PostgreSQL", e.offsetOutOfRangePartitions());
-                rebuildWithOffsets(consumer, partitions, "offsets lost to retention", true);
-                continue;
+                String reason = rebuildRequests.poll();
+                if (reason != null) {
+                    rebuildWithOffsets(consumer, partitions, reason, false);
+                }
+                ConsumerRecords<String, byte[]> records;
+                try {
+                    records = consumer.poll(Duration.ofMillis(kafka.pollTimeoutMillis()));
+                } catch (OffsetOutOfRangeException e) {
+                    log.error("offsets {} are no longer in Kafka (retention); rebuilding", e.offsetOutOfRangePartitions());
+                    rebuildWithOffsets(consumer, partitions, "offsets lost to retention", true);
+                    continue;
+                }
+                if (!records.isEmpty()) {
+                    process(consumer, partitions, records);
+                }
+                runPeriodicTasks(consumer, partitions);
+                long now = System.currentTimeMillis();
+                if (now >= nextLagRefresh) {
+                    refreshLag(consumer, partitions);
+                    nextLagRefresh = now + LAG_REFRESH_MILLIS;
+                }
+            } catch (WakeupException e) {
+                if (!running) {
+                    checkpoint(consumer, "shutdown", true);
+                    return;
+                }
             }
-            if (!records.isEmpty()) {
-                process(consumer, partitions, records);
-            }
-            long now = System.currentTimeMillis();
-            if (now >= nextLagRefresh) {
-                refreshLag(consumer, partitions);
-                nextLagRefresh = now + LAG_REFRESH_MILLIS;
+        }
+        checkpoint(consumer, "shutdown", true);
+    }
+
+    private void runPeriodicTasks(KafkaConsumer<String, byte[]> consumer, List<TopicPartition> partitions) {
+        long now = System.currentTimeMillis();
+        if (snapshotRequested.getAndSet(false)) {
+            checkpoint(consumer, "requested", true);
+        } else if (now >= nextCheckpointAt) {
+            checkpoint(consumer, "periodic", false);
+        }
+        if (now >= nextImportCheckAt) {
+            nextImportCheckAt = now + TimeUnit.SECONDS.toMillis(indexConfig.importCheckSeconds());
+            try {
+                long latest = imports.latestCompletedId();
+                if (latest > indexedImportRunId && requestRebuild("bulk import run " + latest + " detected")) {
+                    log.info("bulk import run {} is newer than the index (run {}); rebuilding", latest, indexedImportRunId);
+                }
+            } catch (org.springframework.dao.DataAccessException e) {
+                // PostgreSQL being down must not disturb event consumption; check again next interval.
+                log.warn("bulk-import check skipped: {}", e.getMessage());
             }
         }
     }
@@ -338,6 +433,37 @@ public class IndexerWorker implements SmartLifecycle {
         return false;
     }
 
+    // ------------------------------------------------------------------ checkpoints
+
+    /**
+     * Writes a checkpoint when the index changed since the last one (or when forced), then commits the
+     * checkpoint's offsets to Kafka. Offsets are never committed for state that is not durable.
+     */
+    private void checkpoint(KafkaConsumer<String, byte[]> consumer, String reason, boolean force) {
+        nextCheckpointAt = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(indexConfig.snapshotIntervalSeconds());
+        if (!checkpoints.enabled() || positions == null || topicId == null) {
+            return;
+        }
+        long generation = index.generation();
+        if (!force && generation == lastCheckpointGeneration) {
+            return;
+        }
+        Map<TopicPartition, Long> at = Map.copyOf(positions);
+        if (!checkpoints.save(at, topicId, indexedImportRunId)) {
+            return;
+        }
+        lastCheckpointGeneration = generation;
+        Map<TopicPartition, OffsetAndMetadata> commit = new HashMap<>();
+        at.forEach((tp, offset) -> commit.put(tp, new OffsetAndMetadata(offset, "checkpoint:" + reason)));
+        try {
+            consumer.commitSync(commit, apiTimeout());
+        } catch (WakeupException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            log.warn("committing checkpoint offsets to Kafka failed (the snapshot remains the recovery point): {}", e.toString());
+        }
+    }
+
     // ------------------------------------------------------------------ rebuilds
 
     private void rebuildWithOffsets(KafkaConsumer<String, byte[]> consumer, List<TopicPartition> partitions,
@@ -345,14 +471,20 @@ public class IndexerWorker implements SmartLifecycle {
         log.info("index rebuild started (reason: {})", reason);
         status.transition(IndexState.BUILDING, "rebuilding from PostgreSQL (" + reason + ")");
         try {
-            Map<TopicPartition, Long> end = consumer.endOffsets(partitions, Duration.ofMillis(kafka.apiTimeoutMillis()));
+            long importRun = imports.latestCompletedId();
+            Map<TopicPartition, Long> end = consumer.endOffsets(partitions, apiTimeout());
             IndexBuilder.Built built = builder.buildFromDatabase();
             index.replace(built.index());
             positions = new HashMap<>(end);
+            indexedImportRunId = importRun;
             replayFromBeginning = false;
             seekAll(consumer, partitions);
             status.buildCompleted(built.millis(), IndexState.LIVE, "built from PostgreSQL; consuming from " + describe(end));
             publishPositions();
+            rebuildPending.set(false);
+            checkpoint(consumer, "after rebuild", true);
+        } catch (WakeupException e) {
+            throw e;
         } catch (RuntimeException e) {
             log.error("index rebuild failed", e);
             status.buildFailed("rebuild failed: " + e.getClass().getSimpleName());
@@ -379,9 +511,11 @@ public class IndexerWorker implements SmartLifecycle {
     private void buildWithoutOffsets(String reason) {
         status.transition(IndexState.BUILDING, "rebuilding from PostgreSQL (" + reason + ")");
         try {
+            long importRun = imports.latestCompletedId();
             IndexBuilder.Built built = builder.buildFromDatabase();
             index.replace(built.index());
             positions = null;
+            indexedImportRunId = importRun;
             replayFromBeginning = true;
             status.buildCompleted(built.millis(), IndexState.DEGRADED,
                     "built from PostgreSQL without Kafka offsets; live updates resume when Kafka is reachable");
@@ -455,6 +589,10 @@ public class IndexerWorker implements SmartLifecycle {
         Map<String, Long> out = new TreeMap<>();
         offsets.forEach((tp, o) -> out.put(tp.toString(), o));
         return out;
+    }
+
+    private Duration apiTimeout() {
+        return Duration.ofMillis(kafka.apiTimeoutMillis());
     }
 
     private KafkaConsumer<String, byte[]> newConsumer() {

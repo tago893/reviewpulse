@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -91,6 +93,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IndexUnavailableException.class)
     ResponseEntity<ApiResponse<Void>> indexUnavailable(IndexUnavailableException e) {
         return error(HttpStatus.SERVICE_UNAVAILABLE, ApiError.of("INDEX_UNAVAILABLE", e.getMessage()));
+    }
+
+    @ExceptionHandler({DataAccessResourceFailureException.class, TransientDataAccessException.class})
+    ResponseEntity<ApiResponse<Void>> databaseUnavailable(RuntimeException e) {
+        log.warn("database unavailable: {}", e.getMessage());
+        return error(HttpStatus.SERVICE_UNAVAILABLE, ApiError.of("DATABASE_UNAVAILABLE",
+                "the review database is temporarily unavailable; retry shortly"));
     }
 
     @ExceptionHandler(Exception.class)

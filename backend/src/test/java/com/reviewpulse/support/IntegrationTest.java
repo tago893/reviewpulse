@@ -18,7 +18,9 @@ import org.springframework.context.annotation.Import;
 @SpringBootTest(properties = {
         "reviewpulse.admin.token=" + IntegrationTest.ADMIN_TOKEN,
         "reviewpulse.outbox.poll-interval-millis=50",
-        "reviewpulse.kafka.poll-timeout-millis=100"})
+        "reviewpulse.kafka.poll-timeout-millis=100",
+        "reviewpulse.index.snapshot-dir=target/it-index",
+        "reviewpulse.index.import-check-seconds=1"})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 public @interface IntegrationTest {

@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.reviewpulse.events.IndexCheckpoints;
 import com.reviewpulse.events.IndexerWorker;
+import com.reviewpulse.search.IndexVerifier;
 import com.reviewpulse.observability.IndexerProgress;
 import com.reviewpulse.outbox.OutboxPublisher;
 import com.reviewpulse.outbox.OutboxRepository;
@@ -31,9 +33,14 @@ public class AdminController {
     private final IndexerProgress progress;
     private final OutboxRepository outbox;
     private final OutboxPublisher publisher;
+    private final IndexCheckpoints checkpoints;
+    private final IndexVerifier verifier;
 
     public AdminController(IndexerWorker indexer, IndexStatus status, SearchIndex index, ReviewRepository reviews,
-                           IndexerProgress progress, OutboxRepository outbox, OutboxPublisher publisher) {
+                           IndexerProgress progress, OutboxRepository outbox, OutboxPublisher publisher,
+                           IndexCheckpoints checkpoints, IndexVerifier verifier) {
+        this.checkpoints = checkpoints;
+        this.verifier = verifier;
         this.indexer = indexer;
         this.status = status;
         this.index = index;
@@ -49,6 +56,19 @@ public class AdminController {
             throw new ConflictException("REBUILD_IN_PROGRESS", "a rebuild is already pending or running");
         }
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(Map.of("rebuild", "queued")));
+    }
+
+    @PostMapping("/snapshot")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> snapshot() {
+        indexer.requestSnapshot();
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(Map.of("snapshot", "requested")));
+    }
+
+    @GetMapping("/index-verify")
+    public ResponseEntity<ApiResponse<IndexVerifier.Report>> verify() {
+        return ResponseEntity.ok(ApiResponse.ok(verifier.verify(),
+                Map.of("lagEventsAtCheck", progress.lagEvents(),
+                        "note", "small differences can be in-flight changes; re-run before acting")));
     }
 
     @GetMapping("/index-status")
@@ -74,6 +94,7 @@ public class AdminController {
         body.put("approximateBytes", stats.approximateBytes());
         body.put("databaseLiveReviews", reviews.countLive());
         body.put("indexer", progress.view());
+        body.put("checkpoint", checkpoints.status());
         Map<String, Object> outboxView = new LinkedHashMap<>();
         outboxView.put("pending", outbox.countByStatus("PENDING"));
         outboxView.put("failed", outbox.countByStatus("FAILED"));

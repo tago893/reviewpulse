@@ -166,7 +166,7 @@ public final class InvertedIndex {
         return new Analysis(ids, tt, bt, lengths[0], lengths[1]);
     }
 
-    private int termIdOrCreate(String term) {
+    int termIdOrCreate(String term) {
         Integer id = termIds.get(term);
         if (id != null) {
             return id;
@@ -181,7 +181,7 @@ public final class InvertedIndex {
         return newId;
     }
 
-    private int productIdOrCreate(String parentAsin) {
+    int productIdOrCreate(String parentAsin) {
         Integer id = productIds.get(parentAsin);
         if (id != null) {
             return id;
@@ -432,5 +432,24 @@ public final class InvertedIndex {
 
     Map<Long, Long> versionMap() {
         return versionByReview;
+    }
+
+    Map<Long, Integer> liveDocMap() {
+        return liveDocByReview;
+    }
+
+    long liveTitleLengthSum() {
+        return liveTitleLengthSum;
+    }
+
+    long liveBodyLengthSum() {
+        return liveBodyLengthSum;
+    }
+
+    /** Restores aggregate statistics after a snapshot load (package-private, snapshot codec only). */
+    void restoreAggregates(int live, long titleSum, long bodySum) {
+        this.liveDocs = live;
+        this.liveTitleLengthSum = titleSum;
+        this.liveBodyLengthSum = bodySum;
     }
 }

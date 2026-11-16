@@ -29,10 +29,15 @@ public record ReviewPulseProperties(Search search, Admin admin, Index index, Kaf
     }
 
     /**
-     * @param buildFetchSize rows fetched per round trip while streaming reviews for a rebuild
-     * @param indexerEnabled run the Kafka-fed indexer thread (disable only in narrow tests)
+     * @param buildFetchSize          rows fetched per round trip while streaming reviews for a rebuild
+     * @param indexerEnabled          run the Kafka-fed indexer thread (disable only in narrow tests)
+     * @param snapshotEnabled         persist checkpoints and recover from them on startup
+     * @param snapshotDir             directory holding index.snapshot (must not be shared by two apps)
+     * @param snapshotIntervalSeconds minimum seconds between checkpoints while the index is changing
+     * @param importCheckSeconds      how often to look for bulk imports newer than the index
      */
-    public record Index(int buildFetchSize, boolean indexerEnabled) {
+    public record Index(int buildFetchSize, boolean indexerEnabled, boolean snapshotEnabled, String snapshotDir,
+                        long snapshotIntervalSeconds, long importCheckSeconds) {
     }
 
     /**

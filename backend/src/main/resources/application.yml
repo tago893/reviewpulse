@@ -13,6 +13,10 @@ spring:
       maximum-pool-size: 12
       connection-timeout: 5000
       validation-timeout: 2000
+      data-source-properties:
+        # Seconds. Without these, a paused/partitioned database hangs request threads indefinitely.
+        connectTimeout: 5
+        socketTimeout: 15
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -39,6 +43,10 @@ reviewpulse:
   index:
     build-fetch-size: 2000
     indexer-enabled: true
+    snapshot-enabled: true
+    snapshot-dir: ${REVIEWPULSE_SNAPSHOT_DIR:../data/index}
+    snapshot-interval-seconds: 30
+    import-check-seconds: 15
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:${KAFKA_PORT:9092}}
     topic: review-events
